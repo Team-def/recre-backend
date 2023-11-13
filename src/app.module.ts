@@ -9,17 +9,16 @@ import { User } from './user/entities/user.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
+      host: 'nestjs-database.cqtkrofxu2ek.ap-northeast-2.rds.amazonaws.com',
       port: 5432,
-      password: '1234',
-      username: 'postgres',
+      password: 'jungle2023',
+      username: 'root',
       entities: [User],
-      database: 'postgres',
+      database: 'recre_db',
       synchronize: true,
       logging: true,
     }),
     UserModule,
-
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -11,23 +11,26 @@ export class User {
   @Column({ type: 'varchar', length: 30 })
   name: string;
 
-  @Column({ type: 'varchar', length: 15 })
-  username: string;
+  // @Column({ type: 'varchar', length: 15 })
+  // username: string;
 
-  @Column({ type: 'varchar', length: 40 })
-  email: string;
+  // @Column({ type: 'varchar', length: 40 })
+  // email: string;
 
-  @Column({ type: 'int' })
-  age: number;
+  // @Column({ type: 'int' })
+  // age: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', nullable: true })
   password: string;
 
-  @Column({ type: 'enum', enum: ['m', 'f', 'u'] })
+  @Column({ type: 'int', array: true, nullable: true })
+  myArray: Number[];
+
   /**
    * m - male
    * f - female
    * u - unspecified
    */
-  gender: string;
+  // @Column({ type: 'enum', enum: ['m', 'f', 'u'], nullable: true })
+  // gender: string | null;
 }
