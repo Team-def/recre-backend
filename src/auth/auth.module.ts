@@ -3,14 +3,20 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './google-strategy';
 import { GoogleAuthGuard } from './google-auth.guard';
-import { UserModule } from 'src/user/user.module';
 import { UserService } from 'src/user/user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { KakaoStrategy } from './kakao-strategy';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
   controllers: [AuthController],
-  providers: [GoogleStrategy, AuthService, GoogleAuthGuard, UserService],
+  providers: [
+    GoogleStrategy,
+    AuthService,
+    GoogleAuthGuard,
+    UserService,
+    KakaoStrategy,
+  ],
 })
-export class AuthModule { }
+export class AuthModule {}

@@ -40,4 +40,24 @@ export class AuthController {
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
     // return "hello";
   }
+
+  /**
+   * 카카오 로그인 요청
+   */
+  @Get('kakao')
+  @UseGuards(AuthGuard('kakao'))
+  async kakaoAuth(@Req() req) {}
+
+  /**
+   * 카카오 로그인 완료
+   * @param req
+   * @param response
+   */
+  @Get('kakao/redirect')
+  @UseGuards(AuthGuard('kakao'))
+  async kakaoAuthRedirect(@Req() req, @Res() response: any) {
+    console.log('request 정보 in /auth/kakao/redirect:', req);
+    await this.authservice.kakaoLogin(req);
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+  }
 }
