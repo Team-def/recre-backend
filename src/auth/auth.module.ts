@@ -7,6 +7,7 @@ import { UserService } from 'src/user/user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { KakaoStrategy } from './kakao-strategy';
+import { NaverStrategy } from './naver-strategy';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
@@ -17,6 +18,7 @@ import { KakaoStrategy } from './kakao-strategy';
     GoogleAuthGuard,
     UserService,
     KakaoStrategy,
+    NaverStrategy,
   ],
 })
 export class AuthModule {}

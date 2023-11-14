@@ -15,11 +15,10 @@ export class User {
   email: string;
 
   @Column({ type: 'varchar', length: 255 })
-  profileImage : string;
+  profileImage: string;
 
   @Column({ type: 'enum', enum: ['naver', 'google', 'kakao'], nullable: false })
-  provider  : string;
-  
+  provider: string;
 
   // @Column({ type: 'varchar', length: 15 })
   // username: string;

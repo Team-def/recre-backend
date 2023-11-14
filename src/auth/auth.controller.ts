@@ -1,16 +1,9 @@
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import { GoogleAuthGuard } from './google-auth.guard';
 import {
-  Body,
   Controller,
-  Delete,
   Get,
   HttpStatus,
-  Param,
-  Post,
-  Put,
-  Query,
   Req,
   Res,
   UseGuards,
@@ -34,9 +27,7 @@ export class AuthController {
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() response: any) {
-    console.log('request 정보 in /auth/google/redirect:', req);
     await this.authservice.googleLogin(req);
-    // console.log(req.user);
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
     // return "hello";
   }
@@ -56,8 +47,26 @@ export class AuthController {
   @Get('kakao/redirect')
   @UseGuards(AuthGuard('kakao'))
   async kakaoAuthRedirect(@Req() req, @Res() response: any) {
-    console.log('request 정보 in /auth/kakao/redirect:', req);
     await this.authservice.kakaoLogin(req);
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+  }
+
+  /**
+   * 네이버 로그인 요청
+   */
+  @Get('naver')
+  @UseGuards(AuthGuard('naver'))
+  async naverAuth(@Req() req) {}
+
+  /**
+   * 네이버 로그인 완료
+   * @param req
+   * @param response
+   */
+  @Get('naver/redirect')
+  @UseGuards(AuthGuard('naver'))
+  async naverAuthRedirect(@Req() req, @Res() response: any) {
+    await this.authservice.naverLogin(req);
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
   }
 }

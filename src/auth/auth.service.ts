@@ -51,4 +51,30 @@ export class AuthService {
       user,
     };
   }
+
+  async naverLogin(req): Promise<any> {
+    console.log('req:', req);
+    if (!req.user) {
+      throw new BadRequestException('No user from naver');
+    }
+    const { nickname, email, profile_image } = req.user;
+
+    // Find user in db
+    const user = await this.userService.findUserByEmail(email);
+
+    // If no user found, create one
+    if (!user) {
+      const newUser: CreateUserDto = new CreateUserDto();
+      newUser.email = email;
+      newUser.nickname = nickname;
+      newUser.profileImage = profile_image;
+      newUser.provider = 'naver';
+      this.userService.createUser(newUser);
+    }
+
+    return {
+      message: 'User information from naver',
+      user,
+    };
+  }
 }
