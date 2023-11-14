@@ -10,18 +10,24 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET, // CLIENT_SECRET
       callbackURL: process.env.GOOGLE_CALLBACK_URL, // redirect_uri
       passReqToCallback: true,
-      scope: ['email','profile'], // 가져올 정보들
+      scope: ['email', 'profile'], // 가져올 정보들
     });
   }
-  authorizationParams(): {[key: string]: string; } {
-    return ({
+  authorizationParams(): { [key: string]: string } {
+    return {
       access_type: 'offline',
       prompt: 'select_account',
-    });
+    };
   }
 
-  async validate (req:Request, accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
-    const { name, emails, photos } = profile
+  async validate(
+    req: Request,
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ): Promise<any> {
+    const { name, emails, photos } = profile;
     console.log(profile);
     const user = {
       email: emails[0].value,
@@ -31,7 +37,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       displayName: profile.displayName,
       // accessToken,
       // refreshToken
-    }
+    };
     done(null, user);
   }
 }
