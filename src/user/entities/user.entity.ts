@@ -9,22 +9,23 @@ export class User {
   id: number;
 
   @Column({ type: 'varchar', length: 30 })
-  name: string;
+  nickname: string;
+
+  @Column({ type: 'varchar', length: 40 })
+  email: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  profileImage : string;
+
+  @Column({ type: 'enum', enum: ['naver', 'google', 'kakao'], nullable: false })
+  provider  : string;
+  
 
   // @Column({ type: 'varchar', length: 15 })
   // username: string;
 
-  // @Column({ type: 'varchar', length: 40 })
-  // email: string;
-
   // @Column({ type: 'int' })
   // age: number;
-
-  @Column({ type: 'varchar', nullable: true })
-  password: string;
-
-  @Column({ type: 'int', array: true, nullable: true })
-  myArray: Number[];
 
   /**
    * m - male

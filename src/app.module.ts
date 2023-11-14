@@ -5,22 +5,24 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'nestjs-database.cqtkrofxu2ek.ap-northeast-2.rds.amazonaws.com',
+      host: process.env.DB_HOST,
       port: 5432,
       password: process.env.DB_USER_PASSWORD,
       username: process.env.DB_USER_NAME,
       entities: [User],
-      database: 'recre_db',
+      database: process.env.DB_DATABASE,
       synchronize: true,
       logging: true,
     }),
     UserModule,
+    AuthModule
   ],
   controllers: [AppController],
   providers: [AppService],
