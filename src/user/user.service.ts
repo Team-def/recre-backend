@@ -82,4 +82,11 @@ export class UserService {
   removeUser(id: number): Promise<{ affected?: number }> {
     return this.userRepository.delete(id);
   }
+
+  async updateUserInfo(email, _user: UpdateUserDto) {
+    const user: User = await this.findUserByEmail(email);
+    user.nickname = _user.nickname;
+    this.userRepository.save(user);
+    return user;
+  }
 }

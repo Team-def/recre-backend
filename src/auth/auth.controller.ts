@@ -4,10 +4,15 @@ import {
   Controller,
   Get,
   HttpStatus,
+  Post,
   Req,
   Res,
   UseGuards,
+  HttpException,
+  Logger,
 } from '@nestjs/common';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { Response } from 'express';
 
 @Controller('auth/')
 export class AuthController {
@@ -26,10 +31,14 @@ export class AuthController {
   //구글 로그인 완료
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() response: any) {
+  async googleAuthRedirect(
+    @Req() req,
+    @Res({ passthrough: true }) response: any,
+  ) {
     await this.authservice.googleLogin(req);
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
-    // return "hello";
+        const tokens = await this.authservice.getJwtTokens(req.user.email);
+
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
   }
 
   /**
@@ -48,7 +57,9 @@ export class AuthController {
   @UseGuards(AuthGuard('kakao'))
   async kakaoAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.kakaoLogin(req);
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+    const tokens = await this.authservice.getJwtTokens(req.user.email);
+
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
   }
 
   /**
@@ -67,6 +78,22 @@ export class AuthController {
   @UseGuards(AuthGuard('naver'))
   async naverAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.naverLogin(req);
+    const tokens = await this.authservice.getJwtTokens(req.user.email);
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
+  }
+
+  @Get('token')
+  @UseGuards(JwtAuthGuard)
+  async tokenTest(@Req() req, @Res() response: any) {
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+  }
+
+  @Post('accesstoken')
+  async refreshAccessToken(@Req() req, @Res() response: Response) {
+    const access_token =
+      await this.authservice.getJwtAccessTokenFromRefreshToken(
+        req.body.refresh_token,
+      );
+    response.json({ access_token });
   }
 }
