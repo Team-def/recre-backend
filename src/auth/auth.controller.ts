@@ -36,7 +36,7 @@ export class AuthController {
   ) {
     await this.authservice.googleLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.json(tokens).header({ redirect: '/' });
+    response.json(tokens);
   }
 
   /**
@@ -56,7 +56,7 @@ export class AuthController {
   async kakaoAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.kakaoLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.json(tokens).header({ redirect: '/' });
+    response.json(tokens);
   }
 
   /**
@@ -76,7 +76,7 @@ export class AuthController {
   async naverAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.naverLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.json(tokens).header({ redirect: '/' });
+    response.json(tokens);
   }
 
   @Get('token')
