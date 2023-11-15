@@ -8,7 +8,7 @@ import { User } from 'src/user/entities/user.entity';
 import { KakaoStrategy } from './kakao-strategy';
 import { NaverStrategy } from './naver-strategy';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtAuthGuard } from './Jwt-auth.guard';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User]), JwtModule.register({})],

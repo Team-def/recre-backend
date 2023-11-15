@@ -82,12 +82,10 @@ export class AuthService {
         const access_token = await this.getJwtAccessToken(userInfo);
         const refresh_token = await this.getJwtRefreshToken(userInfo);
         res.cookie('access_token', access_token, {
-            domain: 'localhost',
             path: '/',
             httpOnly: true,
         });
         res.cookie('refresh_token', refresh_token, {
-            domain: 'localhost',
             path: '/',
             httpOnly: true,
         });
