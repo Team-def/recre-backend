@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 
@@ -18,7 +18,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     const token = authorization.replace('Bearer ', '')
-    request.user = this.validateToken(token);
+   
+    request.payload = this.validateToken(token);
+
     return true;
   }
 
@@ -28,14 +30,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const payload = this.jwtService.verify(token, { secret: secretKey });
       return payload;
     } catch (e) {
-      switch (e.message) {
+      switch (e.name) {
         // 토큰에 대한 오류를 판단합니다.
-        case 'INVALID_TOKEN':
-        case 'TOKEN_IS_ARRAY':
-        case 'NO_USER':
+        case 'JsonWebTokenError':
           throw new HttpException('유효하지 않은 토큰입니다.', 401);
 
-        case 'EXPIRED_TOKEN':
+        case 'TokenExpiredError':
           throw new HttpException('토큰이 만료되었습니다.', 410);
 
         default:

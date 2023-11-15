@@ -6,10 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 /**
  * whatever the string pass in controller decorator it will be appended to
@@ -19,7 +22,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
  */
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   /**
    * Post decorator represents method of request as we have used post decorator the method
@@ -38,8 +41,12 @@ export class UserController {
    * GET http://localhost:3000/user
    */
   @Get()
-  findAll() {
-    return this.userService.findAllUser();
+  @UseGuards(JwtAuthGuard)
+  findUser(@Req() req) {
+    // console.log(req.payload);
+
+    return this.userService.findUserByEmail(req.payload.email);
+
   }
 
   /**
