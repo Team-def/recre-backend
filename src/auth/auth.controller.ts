@@ -8,26 +8,28 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from './Jwt-auth.guard';
 
 @Controller('auth/')
 export class AuthController {
   getHello(): any {
     throw new Error('Method not implemented.');
   }
-  constructor(private readonly authservice: AuthService) {}
+  constructor(private readonly authservice: AuthService) { }
 
   // @UseGuards(GoogleAuthGuard)
   //구글 로그인 요청
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) { }
 
   // @UseGuards(GoogleAuthGuard)
   //구글 로그인 완료
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() response: any) {
+  async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) response: any) {
     await this.authservice.googleLogin(req);
+    await this.authservice.setJwtCookie(req, response);
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
     // return "hello";
   }
@@ -37,7 +39,7 @@ export class AuthController {
    */
   @Get('kakao')
   @UseGuards(AuthGuard('kakao'))
-  async kakaoAuth(@Req() req) {}
+  async kakaoAuth(@Req() req) { }
 
   /**
    * 카카오 로그인 완료
@@ -56,7 +58,7 @@ export class AuthController {
    */
   @Get('naver')
   @UseGuards(AuthGuard('naver'))
-  async naverAuth(@Req() req) {}
+  async naverAuth(@Req() req) { }
 
   /**
    * 네이버 로그인 완료
@@ -68,5 +70,13 @@ export class AuthController {
   async naverAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.naverLogin(req);
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+  }
+
+  @Get('token')
+  @UseGuards(JwtAuthGuard)
+  async tokenTest(@Req() req, @Res() response: any) {
+    console.log('접속성공');
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+
   }
 }
