@@ -88,7 +88,7 @@ export class AuthService {
 
 
     getJwtAccessToken(userInfo: any) {
-        const payload = { ...userInfo };
+        const payload = { email: userInfo.email };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_ACCESS_TOKEN_SECRET,
             expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME
