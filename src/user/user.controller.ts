@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Put,
   Patch,
   Param,
   Delete,
@@ -47,6 +48,12 @@ export class UserController {
 
     return this.userService.findUserByEmail(req.payload.email);
 
+  }
+
+  @Put()
+  @UseGuards(JwtAuthGuard)
+  updateUser(@Req() req, @Body() user: UpdateUserDto) {
+    return this.userService.updateUserInfo(req.payload.email, user);
   }
 
   /**
