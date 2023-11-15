@@ -77,23 +77,17 @@ export class AuthService {
         };
     }
 
-    async setJwtCookie(req: any, res: any) {
-        const userInfo = await this.userService.findUserByEmail(req.user.email);
-        const access_token = await this.getJwtAccessToken(userInfo);
-        const refresh_token = await this.getJwtRefreshToken(userInfo);
-        res.cookie('access_token', access_token, {
-            path: '/',
-            httpOnly: true,
-        });
-        res.cookie('refresh_token', refresh_token, {
-            path: '/',
-            httpOnly: true,
-        });
-        return true;
+  async getJwtTokens(
+    email: string
+  ): Promise<{ access_token: string; refresh_token: string }> {
+        const userInfo = await this.userService.findUserByEmail(email);
+        const access_token = 'Bearer ' + this.getJwtAccessToken(userInfo);
+        const refresh_token = 'Bearer ' + this.getJwtRefreshToken(userInfo);
+        return {access_token, refresh_token};
     }
 
 
-    async getJwtAccessToken(userInfo: any) {
+    getJwtAccessToken(userInfo: any) {
         const payload = { ...userInfo };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_ACCESS_TOKEN_SECRET,
@@ -102,7 +96,7 @@ export class AuthService {
         return token;
     }
 
-    async getJwtRefreshToken(userInfo: any) {
+    getJwtRefreshToken(userInfo: any) {
         const payload = { email: userInfo.email };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_REFRESH_TOKEN_SECRET,
@@ -115,6 +109,7 @@ export class AuthService {
 
     async getJwtAccessTokenFromRefreshToken(refreshToken: string) {
         let verify: object | Buffer;
+        refreshToken = refreshToken.replace('Bearer ', '');
         try {
             verify = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_TOKEN_SECRET });
         } catch (e) {
@@ -135,7 +130,7 @@ export class AuthService {
         const userInfo = await this.userService.findUserByEmail(verify['email']) 
         const payload = {...userInfo};
 
-        const token = this.jwtService.sign(payload, {
+        const token = 'Bearer ' + this.jwtService.sign(payload, {
             secret: process.env.JWT_ACCESS_TOKEN_SECRET,
             expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME
         });

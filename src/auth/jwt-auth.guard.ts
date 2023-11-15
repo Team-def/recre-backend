@@ -11,13 +11,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
 
-    const { access_token } = request.headers;
+    const { authorization } = request.headers;
 
-    if (access_token === undefined) {
+    if (authorization === undefined) {
       throw new HttpException('Token 전송 안됨', HttpStatus.UNAUTHORIZED);
     }
 
-    const token = access_token.replace('Bearer ', '')
+    const token = authorization.replace('Bearer ', '')
     request.user = this.validateToken(token);
     return true;
   }

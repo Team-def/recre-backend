@@ -35,9 +35,8 @@ export class AuthController {
     @Res({ passthrough: true }) response: any,
   ) {
     await this.authservice.googleLogin(req);
-    await this.authservice.setJwtCookie(req, response);
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
-    // return "hello";
+    const tokens = await this.authservice.getJwtTokens(req.user.email);
+    response.json(tokens).header({ redirect: '/' });
   }
 
   /**
@@ -56,7 +55,8 @@ export class AuthController {
   @UseGuards(AuthGuard('kakao'))
   async kakaoAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.kakaoLogin(req);
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+    const tokens = await this.authservice.getJwtTokens(req.user.email);
+    response.json(tokens).header({ redirect: '/' });
   }
 
   /**
@@ -75,7 +75,8 @@ export class AuthController {
   @UseGuards(AuthGuard('naver'))
   async naverAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.naverLogin(req);
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
+    const tokens = await this.authservice.getJwtTokens(req.user.email);
+    response.json(tokens).header({ redirect: '/' });
   }
 
   @Get('token')
