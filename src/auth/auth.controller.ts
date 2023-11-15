@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
   HttpException,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Response } from 'express';
@@ -35,8 +36,9 @@ export class AuthController {
     @Res({ passthrough: true }) response: any,
   ) {
     await this.authservice.googleLogin(req);
-    const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.json(tokens);
+        const tokens = await this.authservice.getJwtTokens(req.user.email);
+
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
   }
 
   /**
@@ -56,7 +58,8 @@ export class AuthController {
   async kakaoAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.kakaoLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.json(tokens);
+
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
   }
 
   /**
@@ -76,7 +79,7 @@ export class AuthController {
   async naverAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.naverLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.json(tokens);
+    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
   }
 
   @Get('token')
