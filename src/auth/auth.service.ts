@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, HttpException } from '@nestjs/common';
 import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
@@ -10,7 +10,6 @@ export class AuthService {
 
     async googleLogin(req) {
         const user = await this.userService.findUserByEmail(req.user.email);
-        console.log(user);
         if (user === null) {
             this.googleResister(req);
             console.log('user is not member');
@@ -32,7 +31,6 @@ export class AuthService {
         if (!req.user) {
             throw new BadRequestException('No user from kakao');
         }
-        console.log('req.user', req.user);
         const { nickname, email, profile_image } = req.user;
 
         // Find user in db
@@ -55,7 +53,6 @@ export class AuthService {
     }
 
     async naverLogin(req): Promise<any> {
-        console.log('req:', req);
         if (!req.user) {
             throw new BadRequestException('No user from naver');
         }
@@ -80,14 +77,8 @@ export class AuthService {
         };
     }
 
-    async setJwtCookie(req:any, res:any)
-    {
-        const userInfo:CreateUserDto = new CreateUserDto();
-        userInfo.email = req.user.email;
-        userInfo.nickname = req.user.nickname;
-        userInfo.profileImage = req.user.profileImage;
-        userInfo.provider = req.user.provider;
-        
+    async setJwtCookie(req: any, res: any) {
+        const userInfo = await this.userService.findUserByEmail(req.user.email);
         const access_token = await this.getJwtAccessToken(userInfo);
         const refresh_token = await this.getJwtRefreshToken(userInfo);
         res.cookie('access_token', access_token, {
@@ -104,7 +95,7 @@ export class AuthService {
     }
 
 
-    async getJwtAccessToken(userInfo: CreateUserDto) {
+    async getJwtAccessToken(userInfo: any) {
         const payload = { ...userInfo };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_ACCESS_TOKEN_SECRET,
@@ -113,8 +104,8 @@ export class AuthService {
         return token;
     }
 
-    async getJwtRefreshToken(userInfo: CreateUserDto) {
-        const payload = { ...userInfo };
+    async getJwtRefreshToken(userInfo: any) {
+        const payload = { email: userInfo.email };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_REFRESH_TOKEN_SECRET,
             expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME
@@ -125,9 +116,27 @@ export class AuthService {
 
 
     async getJwtAccessTokenFromRefreshToken(refreshToken: string) {
-        const payload = this.jwtService.verify(refreshToken, {
-            secret: process.env.JWT_REFRESH_TOKEN_SECRET
-        });
+        let verify: object | Buffer;
+        try {
+            verify = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_TOKEN_SECRET });
+        } catch (e) {
+            switch (e.message) {
+                // 토큰에 대한 오류를 판단합니다.
+                case 'INVALID_TOKEN':
+                case 'TOKEN_IS_ARRAY':
+                case 'NO_USER':
+                    throw new HttpException('유효하지 않은 토큰입니다.', 401);
+
+                case 'EXPIRED_TOKEN':
+                    throw new HttpException('토큰이 만료되었습니다.', 410);
+
+                default:
+                    throw new HttpException('서버 오류입니다.', 500);
+            }
+        }
+        const userInfo = await this.userService.findUserByEmail(verify['email']) 
+        const payload = {...userInfo};
+
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_ACCESS_TOKEN_SECRET,
             expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME

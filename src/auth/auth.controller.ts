@@ -4,11 +4,14 @@ import {
   Controller,
   Get,
   HttpStatus,
+  Post,
   Req,
   Res,
   UseGuards,
+  HttpException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from './Jwt-auth.guard';
+import { Response } from 'express';
 
 @Controller('auth/')
 export class AuthController {
@@ -75,8 +78,13 @@ export class AuthController {
   @Get('token')
   @UseGuards(JwtAuthGuard)
   async tokenTest(@Req() req, @Res() response: any) {
-    console.log('접속성공');
     response.redirect(HttpStatus.PERMANENT_REDIRECT, '/');
 
+  }
+
+  @Post('accesstoken')
+  async refreshAccessToken(@Req() req, @Res() response: Response) {
+    const access_token = await this.authservice.getJwtAccessTokenFromRefreshToken(req.body.refresh_token);
+    response.json({ access_token });
   }
 }
