@@ -23,7 +23,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
  */
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   /**
    * Post decorator represents method of request as we have used post decorator the method
@@ -47,7 +47,6 @@ export class UserController {
     // console.log(req.payload);
 
     return this.userService.findUserByEmail(req.payload.email);
-
   }
 
   @Put()

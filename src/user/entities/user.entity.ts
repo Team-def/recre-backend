@@ -17,7 +17,11 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   profileImage: string;
 
-  @Column({ type: 'enum', enum: ['naver', 'google', 'kakao'], nullable: false })
+  @Column({
+    type: 'enum',
+    enum: ['naver', 'google', 'kakao'],
+    nullable: false,
+  })
   provider: string;
 
   // @Column({ type: 'varchar', length: 15 })

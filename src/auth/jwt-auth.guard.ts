@@ -1,4 +1,11 @@
-import { Injectable, ExecutionContext, UnauthorizedException, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  UnauthorizedException,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 
@@ -17,8 +24,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new HttpException('Token 전송 안됨', HttpStatus.UNAUTHORIZED);
     }
 
-    const token = authorization.replace('Bearer ', '')
-   
+    const token = authorization.replace('Bearer ', '');
+
     request.payload = this.validateToken(token);
 
     return true;
@@ -27,7 +34,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   validateToken(token: string) {
     const secretKey = process.env.JWT_ACCESS_TOKEN_SECRET;
     try {
-      const payload = this.jwtService.verify(token, { secret: secretKey });
+      const payload = this.jwtService.verify(token, {
+        secret: secretKey,
+      });
       return payload;
     } catch (e) {
       switch (e.name) {
