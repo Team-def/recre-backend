@@ -36,9 +36,12 @@ export class AuthController {
     @Res({ passthrough: true }) response: any,
   ) {
     await this.authservice.googleLogin(req);
-        const tokens = await this.authservice.getJwtTokens(req.user.email);
+    const tokens = await this.authservice.getJwtTokens(req.user.email);
 
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
+    response.redirect(
+      HttpStatus.PERMANENT_REDIRECT,
+      `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+    );
   }
 
   /**
@@ -59,7 +62,10 @@ export class AuthController {
     await this.authservice.kakaoLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
 
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
+    response.redirect(
+      HttpStatus.PERMANENT_REDIRECT,
+      `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+    );
   }
 
   /**
@@ -79,7 +85,10 @@ export class AuthController {
   async naverAuthRedirect(@Req() req, @Res() response: any) {
     await this.authservice.naverLogin(req);
     const tokens = await this.authservice.getJwtTokens(req.user.email);
-    response.redirect(HttpStatus.PERMANENT_REDIRECT, `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`);
+    response.redirect(
+      HttpStatus.PERMANENT_REDIRECT,
+      `http://localhost:3000/token?access_token=${tokens.access_token}&refresh_token=${tokens.refresh_token}`,
+    );
   }
 
   @Get('token')
