@@ -16,6 +16,8 @@ import { UserService } from 'src/user/user.service';
 import { Catch } from './game/catch';
 import { subscribe } from 'diagnostics_channel';
 import { SessionGuard } from './session.guard';
+import { json } from 'stream/consumers';
+import { log } from 'console';
 
 @WebSocketGateway(8000)
 export class SessionGateway
@@ -30,30 +32,40 @@ export class SessionGateway
   // todo: 각 방에 접속된 인원들 string 타입이 아니라 array로 관리해야함(일단 해결)
   private connectedSockets: Map<string, Socket> = new Map();
 
-  private connectedPlayerSocketsByRoomId: Map<number, string[]> = new Map();
+  private hostSocketsByRoomId: Map<number, Socket> = new Map();
 
-  private connectedHostSocketsByRoomId: Map<number, string> = new Map();
+  private playerRoomIdBySoketId: Map<string, number> = new Map();
 
-  private PlayerNickNameBySocketId: Map<string, string> = new Map();
+  private playerNickNameBySocketId: Map<string, string> = new Map();
 
-  private CatchGameRoom: Map<number, Catch> = new Map();
+  // 룸 아이디, 캐치마인드 세션
+  private catchGameRoom: Map<number, Catch> = new Map();
 
   handleConnection(client: Socket) {
-    console.log(client.handshake.query.aaa);
-    console.log(`클라이언트 접속: ${client.id}`);
+    // console.log(client.handshake.query.aaa);
+    Logger.log(`클라이언트 접속: ${client.id}`);
     this.connectedSockets.set(client.id, client);
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`클라이언트 접속 해제: ${client.id}`);
+    Logger.log(`클라이언트 접속 해제: ${client.id}`);
+    if (this.playerRoomIdBySoketId.has(client.id)) {
+      const room_id = this.playerRoomIdBySoketId.get(client.id);
+      const room = this.catchGameRoom.get(room_id);
+      if (room) {
+        room.current_user_num--;
+        const host = this.hostSocketsByRoomId.get(room_id);
+        Logger.log("플레이어 접속 해제: " + this.playerNickNameBySocketId.get(client.id));
+        host.emit('player_list_remove', { player_cnt: room.current_user_num, nickname: this.playerNickNameBySocketId.get(client.id) });
+      }
+    }
+    this.playerNickNameBySocketId.delete(client.id);
     this.connectedSockets.delete(client.id);
   }
 
-  @SubscribeMessage('custom_disconnect')
+  @SubscribeMessage('leave_game')
   custumDisconnect(client: Socket, dethnote: string) {
-    const dead = this.connectedSockets.get(dethnote);
-    dead.disconnect();
-    // this.connectedSockets.delete(client.id);
+    client.disconnect();
   }
 
   @SubscribeMessage('joinRoom')
@@ -75,13 +87,13 @@ export class SessionGateway
     this.server.to(room).emit('message', { sender: client.id, message });
   }
 
-  @SubscribeMessage('leaveRoom')
-  handleLeaveRoomEvent(client: Socket, payload: { room: string }) {
-    client.leave(payload.room);
-    console.log(
-      `클라이언트 ${client.id}이(가) 방 ${payload.room}을 나갔습니다.`,
-    );
-  }
+  // @SubscribeMessage('leaveRoom')
+  // handleLeaveRoomEvent(client: Socket, payload: { room: string }) {
+  //   client.leave(payload.room);
+  //   console.log(
+  //     `클라이언트 ${client.id}이(가) 방 ${payload.room}을 나갔습니다.`,
+  //   );
+  // }
 
   @SubscribeMessage('send_location')
   handleLocation(
@@ -96,84 +108,141 @@ export class SessionGateway
     this.server.to(room).emit('location', { sender: client.id, x, y });
   }
 
-  //호스트 접속
+
+  //호스트 접속, 방생성
   @UseGuards(SessionGuard)
   @SubscribeMessage('make_room')
   async makeRoom(
     client: any,
-    payload: { access_token: string; game_type: string; user_num: number, answer: string },
+    //게임 종류, 참여자 수, 정답, 호스트 정보
+    payload: { game_type: string; user_num: number, answer: string, hostInfo: User },
   ) {
-    const { access_token, game_type, user_num, answer } = payload;
-    console.log('make_room', access_token);
-
-    //호스트 검증
-    const tokenPayload = this.authservice.getAccessTokenPayload(payload.access_token);
-
-    if (!tokenPayload) {
-      client.emit('make_room', { result: false });
-      return;
-    }
-    const hostInfo = await this.userservice.findUserByEmail(tokenPayload.email);
-
+    const { game_type, user_num, answer, hostInfo } = payload;
+    Logger.log('make_room: authoriaztion success');
     Logger.log({
       host_name: hostInfo.nickname,
       room_id: hostInfo.id,
       game_type: game_type,
       user_num: user_num,
-      answer: answer
+      answer: answer,
     });
-    if (this.connectedHostSocketsByRoomId.has(hostInfo.id)) {
-      client.emit('make_room', { result: false });
+    if (this.hostSocketsByRoomId.has(hostInfo.id)) {
+      client.emit('make_room', { result: false, message: '이미 방이 존재합니다.' });
       return;
     }
-    //방 만들기
-
+    //캐치마인드 세션 생성
     const catchGame = new Catch(hostInfo.id, hostInfo.nickname, payload.user_num, payload.answer);
-    this.connectedPlayerSocketsByRoomId.set(hostInfo.id, []);
-    this.CatchGameRoom.set(hostInfo.id, catchGame);
-    this.connectedHostSocketsByRoomId.set(hostInfo.id, client.id);
+    //세션 상태 대기중
+    catchGame.status = 1;
+
+    //캐치 마인드 세션에 등록
+    this.catchGameRoom.set(hostInfo.id, catchGame);
+    //게임 진행중인 호스트 정보 등록
+    this.hostSocketsByRoomId.set(hostInfo.id, client);
   }
 
+  //todo => 게임 시작버튼을 누를 시 access_token 토큰 필요
   //게임 시작
+  @UseGuards(SessionGuard)
   @SubscribeMessage('start_catch_game')
-  startCatchGame(client: Socket, payload: { room_id: string }) {
-    Logger.log('start_catch_game:'+payload.room_id+' '+this.connectedHostSocketsByRoomId.get(Number(payload.room_id)));
-    const { room_id } = payload;
-    this.server.to(room_id).emit('start_catch_game', { result: true });
+  startCatchGame(client: Socket, payload: { hostInfo: User }) {
+    const room_id = payload.hostInfo.id.toString();
+    if (this.hostSocketsByRoomId.get(Number(room_id)) !== client) {
+      client.emit('start_catch_game', { result: false, message: '호스트가 아닙니다.' });
+      return;
+    }
+    Logger.log('start_catch_game:' + room_id + ' ' + this.hostSocketsByRoomId.get(Number(room_id)));
+    Logger.log(typeof room_id);
+    const room = this.catchGameRoom.get(Number(room_id));
+    //게임 시작 상태로 변경
+    room.status = 2;
+    this.server.to(room_id.toString()).emit('start_catch_game', { result: true });
   }
 
   //유저 ready
   @SubscribeMessage('ready')
   async ready(client: Socket, payload: { room_id: string; nickname: string }) {
     const { room_id, nickname } = payload;
+    if (room_id === undefined || nickname === undefined || !this.catchGameRoom.has(Number(room_id))) {
+      Logger.warn(`room_id: ${client.id} ready: invalid room_id or nickname`);
+      return;
+    }
 
-
-    const room = this.CatchGameRoom.get(Number(room_id));
-    Logger.log(room_id + " " + nickname + " " + room.user_num );
+    const room = this.catchGameRoom.get(Number(room_id));
+    if (this.playerRoomIdBySoketId.has(client.id)) {
+      Logger.log("이미 참가중입니다.");
+      client.emit('ready', { result: false, message: '이미 참가중입니다.' });
+      return;
+    }
 
     if (room) {
       if (room.current_user_num === room.user_num) {
-        client.emit('make_room', { result: false, message: '방이 꽉 찼습니다.' });
+        Logger.log(room.current_user_num + "번 방이 꽉 찼습니다.");
+        client.emit('ready', { result: false, message: '방이 꽉 찼습니다.' });
         return;
       }
+      Logger.log(nickname + ": " + room_id + "에 게임 참가: ");
       room.current_user_num++;
-      this.PlayerNickNameBySocketId.set(client.id, nickname);
-      this.connectedPlayerSocketsByRoomId.get(Number(room_id)).push(client.id);
-      client.join(room_id);
-
+      this.playerRoomIdBySoketId.set(client.id, Number(room_id));
+      this.playerNickNameBySocketId.set(client.id, nickname);
+      client.join(room_id.toString());
     }
-    Logger.log("게임 참가자: " + nickname + " 룸 번호: " + room_id+" 총 참가 인원: "+room.user_num)+" 현재 참가 인원: "+room.current_user_num;
+    console.log(client.rooms);
 
-    
+    Logger.log("게임 참가자: " + nickname + " 룸 번호: " + room_id + " 총 참가 인원: " +
+      room.user_num + " 현재 참가 인원: " + room.current_user_num);
+    const host = this.hostSocketsByRoomId.get(Number(room_id));
+    host.emit('player_list_add', { player_cnt: room.current_user_num, nickname: nickname });
   }
 
   //정답 제출
   @SubscribeMessage('throw_catch_answer')
   async throwCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
     const { room_id, ans } = payload;
-    const room = this.CatchGameRoom.get(Number(room_id));
-    if(ans === room.correctAnswer){
-      this.server.to(room_id).emit('end', { result: true, nickname: this.PlayerNickNameBySocketId.get(client.id) });
+    if (room_id === undefined || ans === undefined || !this.catchGameRoom.has(Number(room_id))) {return; };
+    const room = this.catchGameRoom.get(Number(room_id));
+    Logger.log("게임 상태" + room.status);
+    if (room.status !== 2) {
+      return;
     }
+    if (ans === room.correctAnswer) {
+      Logger.log("정답: " + ans);
+      room.status = 3;
+      const host = this.hostSocketsByRoomId.get(Number(room_id));
+      host.emit('correct', { result: true, answer: room.correctAnswer, nickname: this.playerNickNameBySocketId.get(client.id) })
+      this.server.to(room_id.toString()).emit('correct', { result: true, answer: room.correctAnswer, nickname: this.playerNickNameBySocketId.get(client.id) });
+    } else {
+      Logger.log("틀림: " + ans);
+      const host = this.hostSocketsByRoomId.get(Number(room_id));
+      host.emit('incorrect', { result: true, incorrectAnswer: ans, nickname: this.playerNickNameBySocketId.get(client.id) });
+    }
+  }
+
+  //캐치 마인드 게임 종료
+  @SubscribeMessage('end_game')
+  async end(client: Socket, payload: { room_id: string }) {
+    const { room_id } = payload;
+    const room = this.catchGameRoom.get(Number(room_id));
+    if (room) {
+      room.status = 2;
+      this.catchGameRoom.delete(Number(room_id));
+      this.server.to(room_id.toString()).emit('end', { result: false, answer: room.correctAnswer });
+      this.server.to(room_id.toString()).disconnectSockets();
+      this.hostSocketsByRoomId.delete(Number(room_id));
+    }
+    client.disconnect();
+  }
+
+  //캐치 마인드 정답 설정 (호스트만 가능)
+  @UseGuards(SessionGuard)
+  @SubscribeMessage('set_catch_answer')
+  async setCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
+    if (this.hostSocketsByRoomId.get(Number(payload.room_id)) !== client) {
+      return;
+    }
+    const { room_id, ans } = payload;
+    const room = this.catchGameRoom.get(Number(room_id));
+    room.correctAnswer = ans;
+    Logger.log(room_id + "번방 정답 설정: " + ans);
   }
 }
