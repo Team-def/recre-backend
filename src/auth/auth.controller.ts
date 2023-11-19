@@ -40,8 +40,14 @@ export class AuthController {
       req.user.email,
     );
     response
-      .cookie('access_token', access_token)
-      .cookie('refresh_token', refresh_token)
+      .cookie('access_token', access_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        httpOnly: true,
+      })
+      .cookie('refresh_token', refresh_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        httpOnly: true,
+      })
       .redirect(HttpStatus.PERMANENT_REDIRECT, process.env.CLIENT_URL);
   }
 
