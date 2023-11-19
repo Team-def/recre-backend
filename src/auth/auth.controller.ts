@@ -19,13 +19,13 @@ export class AuthController {
   getHello(): any {
     throw new Error('Method not implemented.');
   }
-  constructor(private readonly authservice: AuthService) { }
+  constructor(private readonly authservice: AuthService) {}
 
   // @UseGuards(GoogleAuthGuard)
   //구글 로그인 요청
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) { }
+  async googleAuth(@Req() req) {}
 
   // @UseGuards(GoogleAuthGuard)
   //구글 로그인 완료
@@ -85,7 +85,7 @@ export class AuthController {
    */
   @Get('naver')
   @UseGuards(AuthGuard('naver'))
-  async naverAuth(@Req() req) { }
+  async naverAuth(@Req() req) {}
 
   /**
    * 네이버 로그인 완료
