@@ -14,6 +14,8 @@ import { AuthService } from 'src/auth/auth.service';
 import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { Catch } from './game/catch';
+import { ClientEntity } from './cliententity/client.entity';
+
 import { subscribe } from 'diagnostics_channel';
 import { SessionGuard } from './session.guard';
 import { json } from 'stream/consumers';
@@ -38,13 +40,17 @@ export class SessionGateway
 
   private playerNickNameBySocketId: Map<string, string> = new Map();
 
+  private uuidToclient: Map<string, ClientEntity> = new Map();
+
   // 룸 아이디, 캐치마인드 세션
   private catchGameRoom: Map<number, Catch> = new Map();
 
   handleConnection(client: Socket) {
     // console.log(client.handshake.query.aaa);
     Logger.log(`클라이언트 접속: ${client.id}`);
-    this.connectedSockets.set(client.id, client);
+    const uuId = client.handshake.query.uuId;
+    
+    this.connectedSockets.set(uuId.toString(), client);
   }
 
   handleDisconnect(client: Socket) {
@@ -199,7 +205,7 @@ export class SessionGateway
   @SubscribeMessage('throw_catch_answer')
   async throwCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
     const { room_id, ans } = payload;
-    if (room_id === undefined || ans === undefined || !this.catchGameRoom.has(Number(room_id))) {return; };
+    if (room_id === undefined || ans === undefined || !this.catchGameRoom.has(Number(room_id))) { return; };
     const room = this.catchGameRoom.get(Number(room_id));
     Logger.log("게임 상태" + room.status);
     if (room.status !== 2) {
