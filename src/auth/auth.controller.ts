@@ -19,13 +19,13 @@ export class AuthController {
   getHello(): any {
     throw new Error('Method not implemented.');
   }
-  constructor(private readonly authservice: AuthService) {}
+  constructor(private readonly authservice: AuthService) { }
 
   // @UseGuards(GoogleAuthGuard)
   //구글 로그인 요청
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) { }
 
   // @UseGuards(GoogleAuthGuard)
   //구글 로그인 완료
@@ -36,9 +36,13 @@ export class AuthController {
     @Res({ passthrough: true }) response: any,
   ) {
     await this.authservice.googleLogin(req);
-    const tokens = await this.authservice.getJwtTokens(req.user.email);
-
-    response.json(tokens);
+    const { access_token, refresh_token } = await this.authservice.getJwtTokens(
+      req.user.email,
+    );
+    response
+      .cookie('access_token', access_token)
+      .cookie('refresh_token', refresh_token)
+      .redirect(HttpStatus.PERMANENT_REDIRECT, process.env.CLIENT_URL);
   }
 
   /**
@@ -46,7 +50,9 @@ export class AuthController {
    */
   @Get('kakao')
   @UseGuards(AuthGuard('kakao'))
-  async kakaoAuth(@Req() req) {}
+  async kakaoAuth(@Req() req) {
+    Logger.log('kakaoAuth');
+  }
 
   /**
    * 카카오 로그인 완료
@@ -55,11 +61,23 @@ export class AuthController {
    */
   @Get('kakao/redirect')
   @UseGuards(AuthGuard('kakao'))
-  async kakaoAuthRedirect(@Req() req, @Res() response: any) {
-    await this.authservice.kakaoLogin(req);
-    const tokens = await this.authservice.getJwtTokens(req.user.email);
+  async kakaoAuthRedirect(@Req() req, @Res() response: Response) {
+    Logger.log('kakaoAuthRedirect');
 
-    response.json(tokens);
+    await this.authservice.kakaoLogin(req);
+    const { access_token, refresh_token } = await this.authservice.getJwtTokens(
+      req.user.email,
+    );
+    response
+      .cookie('access_token', access_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        httpOnly: true,
+      })
+      .cookie('refresh_token', refresh_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        httpOnly: true,
+      })
+      .redirect(HttpStatus.PERMANENT_REDIRECT, process.env.CLIENT_URL);
   }
 
   /**
@@ -67,7 +85,7 @@ export class AuthController {
    */
   @Get('naver')
   @UseGuards(AuthGuard('naver'))
-  async naverAuth(@Req() req) {}
+  async naverAuth(@Req() req) { }
 
   /**
    * 네이버 로그인 완료
@@ -76,11 +94,21 @@ export class AuthController {
    */
   @Get('naver/redirect')
   @UseGuards(AuthGuard('naver'))
-  async naverAuthRedirect(@Req() req, @Res() response: any) {
+  async naverAuthRedirect(@Req() req, @Res() response: Response) {
     await this.authservice.naverLogin(req);
-    const tokens = await this.authservice.getJwtTokens(req.user.email);
-
-    response.json(tokens);
+    const { access_token, refresh_token } = await this.authservice.getJwtTokens(
+      req.user.email,
+    );
+    response
+      .cookie('access_token', access_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        httpOnly: true,
+      })
+      .cookie('refresh_token', refresh_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        httpOnly: true,
+      })
+      .redirect(HttpStatus.PERMANENT_REDIRECT, process.env.CLIENT_URL);
   }
 
   @Get('token')
