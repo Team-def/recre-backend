@@ -26,4 +26,5 @@ export class CreateUserDto {
 
   provider  : string;
 
+  createdDt: Date;
 }

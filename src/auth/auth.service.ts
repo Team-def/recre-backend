@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  HttpException,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, HttpException } from '@nestjs/common';
 import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
@@ -26,13 +21,13 @@ export class AuthService {
     }
   }
 
-  googleResister(req) {
+  async googleResister(req) {
     const newUser: CreateUserDto = new CreateUserDto();
     newUser.email = req.user.email;
     newUser.nickname = req.user.displayName;
     newUser.profileImage = req.user.picture;
     newUser.provider = 'google';
-    this.userService.createUser(newUser);
+    await this.userService.createUser(newUser);
   }
 
   async kakaoLogin(req): Promise<any> {
@@ -51,7 +46,7 @@ export class AuthService {
       newUser.nickname = nickname;
       newUser.profileImage = profile_image;
       newUser.provider = 'kakao';
-      this.userService.createUser(newUser);
+      await this.userService.createUser(newUser);
     }
 
     return {
@@ -76,7 +71,7 @@ export class AuthService {
       newUser.nickname = nickname;
       newUser.profileImage = profile_image;
       newUser.provider = 'naver';
-      this.userService.createUser(newUser);
+      await this.userService.createUser(newUser);
     }
 
     return {
@@ -110,33 +105,6 @@ export class AuthService {
       expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME,
     });
     return token;
-  }
-
-  getAccessTokenPayload(accessToken: string) {
-    let payload = null;
-    accessToken = accessToken.replace('Bearer ', '');
-    try {
-      payload = this.jwtService.verify(accessToken, {
-        secret: process.env.JWT_ACCESS_TOKEN_SECRET,
-      });
-    } catch (e) {
-      Logger.error(e);
-      switch (e.message) {
-        // 토큰에 대한 오류를 판단합니다.
-        case 'INVALID_TOKEN':
-        case 'TOKEN_IS_ARRAY':
-        case 'NO_USER':
-        // throw new HttpException('유효하지 않은 토큰입니다.', 401);
-
-        case 'EXPIRED_TOKEN':
-        // throw new HttpException('토큰이 만료되었습니다.', 410);
-
-        default:
-          // throw new HttpException('서버 오류입니다.', 500);
-          return false;
-      }
-    }
-    return payload;
   }
 
   async getJwtAccessTokenFromRefreshToken(refreshToken: string) {

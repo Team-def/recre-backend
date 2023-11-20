@@ -20,6 +20,9 @@ export class User {
   @Column({ type: 'enum', enum: ['naver', 'google', 'kakao'], nullable: false })
   provider: string;
 
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdDt: Date;
+
   // @Column({ type: 'varchar', length: 15 })
   // username: string;
 

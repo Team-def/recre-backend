@@ -23,7 +23,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
  */
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   /**
    * Post decorator represents method of request as we have used post decorator the method
@@ -37,7 +37,7 @@ export class UserController {
   }
 
   /**
-   * we have used get decorator to get all the user's list
+   * we have used get decorator to get the user by email
    * so the API URL will be
    * GET http://localhost:3000/user
    */
@@ -45,15 +45,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   findUser(@Req() req) {
     // console.log(req.payload);
-
     return this.userService.findUserByEmail(req.payload.email);
-
-  }
-
-  @Put()
-  @UseGuards(JwtAuthGuard)
-  updateUser(@Req() req, @Body() user: UpdateUserDto) {
-    return this.userService.updateUserInfo(req.payload.email, user);
   }
 
   /**
@@ -67,22 +59,22 @@ export class UserController {
   }
 
   /**
-   * we have used patch decorator with id param to get id from request
-   * so the API URL will be
-   * PATCH http://localhost:3000/user/:id
+   * we have used put decorator and get email from request.
+   * PUT http://localhost:3000/user
    */
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.updateUser(+id, updateUserDto);
+  @Put()
+  @UseGuards(JwtAuthGuard)
+  update(@Req() req, @Body() user: UpdateUserDto) {
+    return this.userService.updateUser(req.payload.email, user);
   }
 
   /**
-   * we have used Delete decorator with id param to get id from request
-   * so the API URL will be
-   * DELETE http://localhost:3000/user/:id
+   * we have used Delete decorator and get email from request.
+   * DELETE http://localhost:3000/user
    */
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.removeUser(+id);
+  @Delete()
+  @UseGuards(JwtAuthGuard)
+  remove(@Req() req) {
+    return this.userService.removeUser(req.payload.email);
   }
 }
