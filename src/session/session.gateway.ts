@@ -20,36 +20,38 @@ import { subscribe } from 'diagnostics_channel';
 import { SessionGuard } from './session.guard';
 import { json } from 'stream/consumers';
 import { log } from 'console';
+import { Cipher } from 'crypto';
 
-@WebSocketGateway(8000, { transports: ['websocket'], pingInterval: 3000, pingTimeout: 10000 })
+@WebSocketGateway(8080, { transports: ['websocket'], pingInterval: 3000, pingTimeout: 10000 })
 export class SessionGateway
   implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
-    private readonly userservice: UserService,
-    private readonly authservice: AuthService,
   ) { }
   @WebSocketServer()
   server: Server;
 
-  // todo: 각 방에 접속된 인원들 string 타입이 아니라 array로 관리해야함(일단 해결)
+  //접속된 전체 소켓
   private connectedSockets: Map<string, Socket> = new Map();
 
-  private hostuuidByRoomId: Map<number, string> = new Map();
+  // < uuid, room_id >, 방 번호로 호스트 조회
+  private roomIdToHostId: Map<number, string> = new Map();
 
-  // private playerRoomIdBySoketId: Map<string, number> = new Map();
 
-  //uuid 로 클라이언트 정보 접근 <uuid, clientEntity>
+  // <uuid, clientEntity>, uuid 로 클라이언트 정보 접근
   private uuidToclientEntity: Map<string, ClientEntity> = new Map();
-  //소켓으로 uuid 접근
+  
+  // < socket, uuid > 소켓으로 uuid 접근
   private socketTouuid: Map<Socket, string> = new Map();
 
-  //<룸 아이디, 플레이어uuid[] >
+  //<룸 아이디, 플레이어 uuid[] > 룸 아이디로 플레이어 세트 조회
   private roomidToPlayerSet: Map<number, Set<string>> = new Map();
 
 
   // 룸 아이디, 캐치마인드 세션
   private catchGameRoom: Map<number, Catch> = new Map();
 
+
+  // 소켓 접속
   handleConnection(client: Socket,) {
     // console.log(client.handshake.query.aaa);
     Logger.log(`클라이언트 접속: ${client.id}`);
@@ -104,7 +106,7 @@ export class SessionGateway
       const room = this.catchGameRoom.get(room_id);
       if (room.status === 2) {
         room.current_user_num--;
-        const hostuuid = this.hostuuidByRoomId.get(room_id);
+        const hostuuid = this.roomIdToHostId.get(room_id);
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
         Logger.log("플레이어 접속 해제: " + uuId);
         host.emit('player_list_remove', { player_cnt: room.current_user_num, nickname: this.uuidToclientEntity.get(uuId).nickname });
@@ -137,7 +139,7 @@ export class SessionGateway
       const room = this.catchGameRoom.get(room_id);
       if (room) {
         room.current_user_num--;
-        const hostuuid = this.hostuuidByRoomId.get(room_id);
+        const hostuuid = this.roomIdToHostId.get(room_id);
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
         Logger.log("플레이어 접속 해제: " + uuId);
         host.emit('player_list_remove', { player_cnt: room.current_user_num, nickname: this.uuidToclientEntity.get(uuId).nickname });
@@ -166,7 +168,7 @@ export class SessionGateway
       user_num: user_num,
       answer: answer,
     });
-    if (this.hostuuidByRoomId.has(hostInfo.id)) {
+    if (this.roomIdToHostId.has(hostInfo.id)) {
       client.emit('make_room', { result: false, message: '이미 방이 존재합니다.' });
       return;
     }
@@ -176,9 +178,10 @@ export class SessionGateway
     //캐치 마인드 세션에 등록
     this.catchGameRoom.set(hostInfo.id, catchGame);
     //게임 진행중인 호스트 정보 등록
-    this.hostuuidByRoomId.set(hostInfo.id, uuId.toString());
+    this.roomIdToHostId.set(hostInfo.id, uuId.toString());
     //플레이어 리스트 세트 생성
     this.roomidToPlayerSet.set(hostInfo.id, new Set<string>());
+
   }
 
   //todo => 게임 시작버튼을 누를 시 access_token 토큰 필요
@@ -187,17 +190,19 @@ export class SessionGateway
   @SubscribeMessage('start_catch_game')
   startCatchGame(client: Socket, payload: { hostInfo: User }) {
     const room_id = payload.hostInfo.id.toString();
-    const hostuuid = this.hostuuidByRoomId.get(Number(room_id));
-    if (this.uuidToclientEntity.get(hostuuid).clientSocket !== client) {
-      client.emit('start_catch_game', { result: false, message: '호스트가 아닙니다.' });
-      return;
-    }
-    Logger.log('start_catch_game:' + room_id + ' ' + this.hostuuidByRoomId.get(Number(room_id)));
+    const hostuuid = this.roomIdToHostId.get(Number(room_id));
+    // if (this.uuidToclientEntity.get(hostuuid).clientSocket !== client) {
+    //   client.emit('start_catch_game', { result: false, message: '호스트가 아닙니다.' });
+    //   return;
+    // }
+    Logger.log('start_catch_game:' + room_id + ' ' + this.roomIdToHostId.get(Number(room_id)));
     Logger.log(typeof room_id);
     const room = this.catchGameRoom.get(Number(room_id));
     //게임 시작 상태로 변경
     room.status = 1;
     this.server.to(room_id.toString()).emit('start_catch_game', { result: true });
+    client.emit("start_catch_game",{result: true });
+    // return { result: true };
   }
 
   //유저 ready
@@ -214,7 +219,7 @@ export class SessionGateway
     const uuId = this.socketTouuid.get(client);
     const clientEntity = this.uuidToclientEntity.get(uuId);
     if (clientEntity.roomId !== -1) {
-      Logger.log("이미 참가중입니다.");
+      Logger.log("이미 참가중입니다."); 
       client.emit('ready', { result: false, message: '이미 참가중입니다.' });
       return;
     }
@@ -238,7 +243,7 @@ export class SessionGateway
 
     Logger.log("게임 참가자: " + nickname + " 룸 번호: " + room_id + " 총 참가 인원: " +
       room.user_num + " 현재 참가 인원: " + room.current_user_num);
-    const hostuuid = this.hostuuidByRoomId.get(Number(room_id));
+    const hostuuid = this.roomIdToHostId.get(Number(room_id));
     const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
     host.emit('player_list_add', { player_cnt: room.current_user_num, nickname: nickname });
   }
@@ -255,7 +260,8 @@ export class SessionGateway
     if (room.status !== 1) {
       return;
     }
-    const hostuuid = this.hostuuidByRoomId.get(clientEntity.roomId);
+    const hostuuid = this.roomIdToHostId.get(clientEntity.roomId);
+    console.log("정답 입력방 확인 호스트 UUID: ",hostuuid);
     const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
     if (ans === room.correctAnswer) {
       Logger.log("정답: " + ans);
@@ -283,7 +289,7 @@ export class SessionGateway
       }
       this.server.to(room_id.toString()).emit('end', { result: true, answer: room.correctAnswer });
       this.server.to(room_id.toString()).disconnectSockets();
-      this.hostuuidByRoomId.delete(Number(room_id));
+      this.roomIdToHostId.delete(Number(room_id));
     }
     this.catchGameRoom.delete(Number(room_id));
     const uuId = this.socketTouuid.get(client);
@@ -297,14 +303,18 @@ export class SessionGateway
   @UseGuards(SessionGuard)
   @SubscribeMessage('set_catch_answer')
   async setCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
-    const hostuuid = this.hostuuidByRoomId.get(Number(payload.room_id));
-    const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
-    if (host !== client) {
-      return;
-    }
+    const hostuuId = this.roomIdToHostId.get(Number(payload.room_id));
+    console.log("정답 입력 로그: ",hostuuId);
+    // const hostuuid = this.hostuuidByRoomId.get(Number(payload.room_id));
+    const host = this.uuidToclientEntity.get(hostuuId).clientSocket;
+ 
     const { room_id, ans } = payload;
     const room = this.catchGameRoom.get(Number(room_id));
+    // if (room_id !== room) {
+    //   return;
+    // }
     room.correctAnswer = ans;
     Logger.log(room_id + "번방 정답 설정: " + ans);
+    host.emit('set_catch_answer', { result: true, answer: ans });
   }
 }
