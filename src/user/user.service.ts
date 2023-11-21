@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { NotFoundException } from '@nestjs/common';
+import { assert } from 'console';
 
 @Injectable()
 export class UserService {
@@ -41,8 +42,13 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  findUserByEmail(email: string): Promise<User> {
-    return this.userRepository.findOneBy({ email });
+  findUser(email: string, provider: string): Promise<User> {
+    assert(provider, 'provider is required');
+    Logger.log(
+      `findUser: ${JSON.stringify({ email, provider })}`,
+      'UserService',
+    );
+    return this.userRepository.findOne({ where: { email, provider } });
   }
 
   /**
@@ -64,8 +70,8 @@ export class UserService {
    * @param _user this is updateUserDto, partial type of createUserDto.
    * @returns promise of udpate user
    */
-  async updateUser(email: string, _user: UpdateUserDto) {
-    const user: User = await this.findUserByEmail(email);
+  async updateUser(email: string, provider: string, _user: UpdateUserDto) {
+    const user: User = await this.findUser(email, provider);
     user.nickname = _user.nickname;
     // user.profileImage = _user.profileImage;
     this.userRepository.save(user);

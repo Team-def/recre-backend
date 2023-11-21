@@ -35,11 +35,29 @@ export class AuthController {
     @Req() req,
     @Res({ passthrough: true }) response: Response,
   ) {
+    req.user.provider = 'google';
     await this.authservice.googleLogin(req);
     const { access_token, refresh_token } = await this.authservice.getJwtTokens(
       req.user.email,
+      req.user.provider,
     );
-    this.responseWithCookieAndRedirect(response, access_token, refresh_token);
+
+    Logger.debug(`access_token: ${access_token}`, 'AuthController');
+
+    response
+      .cookie('access_token', access_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        sameSite: 'lax',
+        // secure: true, /// TODO: https 적용시 주석 해제
+      })
+      .cookie('refresh_token', refresh_token, {
+        sameSite: 'lax',
+        // secure: true, /// TODO: https 적용시 주석 해제
+      })
+      .redirect(
+        HttpStatus.PERMANENT_REDIRECT,
+        process.env.CLIENT_URL + '/token',
+      );
   }
 
   /**
@@ -59,11 +77,16 @@ export class AuthController {
   @Get('kakao/redirect')
   @UseGuards(AuthGuard('kakao'))
   async kakaoAuthRedirect(@Req() req, @Res() response: Response) {
-    Logger.log('kakaoAuthRedirect');
+    req.user.provider = 'kakao';
+    Logger.debug(
+      `kakaoAuthRedirect: ${JSON.stringify(req.user)}`,
+      'AuthController',
+    );
 
     await this.authservice.kakaoLogin(req);
     const { access_token, refresh_token } = await this.authservice.getJwtTokens(
       req.user.email,
+      req.user.provider,
     );
     this.responseWithCookieAndRedirect(response, access_token, refresh_token);
   }
@@ -83,9 +106,11 @@ export class AuthController {
   @Get('naver/redirect')
   @UseGuards(AuthGuard('naver'))
   async naverAuthRedirect(@Req() req, @Res() response: Response) {
+    req.user.provider = 'naver';
     await this.authservice.naverLogin(req);
     const { access_token, refresh_token } = await this.authservice.getJwtTokens(
       req.user.email,
+      req.user.provider,
     );
     this.responseWithCookieAndRedirect(response, access_token, refresh_token);
   }

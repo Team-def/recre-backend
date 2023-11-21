@@ -24,5 +24,7 @@ export class CreateUserDto {
 
   profileImage: string;
 
+  @IsString()
+  @IsNotEmpty()
   provider: string;
 }
