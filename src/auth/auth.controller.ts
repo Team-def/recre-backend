@@ -33,23 +33,13 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(
     @Req() req,
-    @Res({ passthrough: true }) response: any,
+    @Res({ passthrough: true }) response: Response,
   ) {
     await this.authservice.googleLogin(req);
     const { access_token, refresh_token } = await this.authservice.getJwtTokens(
       req.user.email,
     );
-    response
-      .cookie('access_token', access_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-      })
-      .cookie('refresh_token', refresh_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-      })
-      .redirect(
-        HttpStatus.PERMANENT_REDIRECT,
-        process.env.CLIENT_URL + '/token',
-      );
+    this.responseWithCookieAndRedirect(response, access_token, refresh_token);
   }
 
   /**
@@ -75,18 +65,7 @@ export class AuthController {
     const { access_token, refresh_token } = await this.authservice.getJwtTokens(
       req.user.email,
     );
-    response
-      .cookie('access_token', access_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-        httpOnly: true,
-      })
-      .cookie('refresh_token', refresh_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-      })
-      .redirect(
-        HttpStatus.PERMANENT_REDIRECT,
-        process.env.CLIENT_URL + '/token',
-      );
+    this.responseWithCookieAndRedirect(response, access_token, refresh_token);
   }
 
   /**
@@ -108,17 +87,7 @@ export class AuthController {
     const { access_token, refresh_token } = await this.authservice.getJwtTokens(
       req.user.email,
     );
-    response
-      .cookie('access_token', access_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-      })
-      .cookie('refresh_token', refresh_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-      })
-      .redirect(
-        HttpStatus.PERMANENT_REDIRECT,
-        process.env.CLIENT_URL + '/token',
-      );
+    this.responseWithCookieAndRedirect(response, access_token, refresh_token);
   }
 
   @Get('token')
@@ -134,5 +103,26 @@ export class AuthController {
         req.body.refresh_token,
       );
     response.json({ access_token });
+  }
+
+  private responseWithCookieAndRedirect(
+    response: Response,
+    access_token: string,
+    refresh_token: string,
+  ) {
+    response
+      .cookie('access_token', access_token, {
+        expires: new Date(Date.now() + 1000 * 60),
+        sameSite: 'lax',
+        // secure: true, /// TODO: https 적용시 주석 해제
+      })
+      .cookie('refresh_token', refresh_token, {
+        sameSite: 'lax',
+        // secure: true, /// TODO: https 적용시 주석 해제
+      })
+      .redirect(
+        HttpStatus.PERMANENT_REDIRECT,
+        process.env.CLIENT_URL + '/token',
+      );
   }
 }
