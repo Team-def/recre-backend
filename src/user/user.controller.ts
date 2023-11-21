@@ -44,8 +44,7 @@ export class UserController {
   @Get()
   @UseGuards(JwtAuthGuard)
   findUser(@Req() req) {
-    // console.log(req.payload);
-    return this.userService.findUserByEmail(req.payload.email);
+    return this.userService.findUser(req.payload.email, req.payload.provider);
   }
 
   /**
@@ -65,7 +64,11 @@ export class UserController {
   @Put()
   @UseGuards(JwtAuthGuard)
   update(@Req() req, @Body() user: UpdateUserDto) {
-    return this.userService.updateUser(req.payload.email, user);
+    return this.userService.updateUser(
+      req.payload.email,
+      req.payload.provider,
+      user,
+    );
   }
 
   /**

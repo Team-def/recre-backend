@@ -1,6 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Observable } from 'rxjs';
 import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/user/user.service';
 
@@ -10,11 +14,8 @@ export class SessionGuard implements CanActivate {
     private readonly userservice: UserService,
     private readonly authservice: AuthService,
     private readonly jwtService: JwtService,
-
-  ) { }
-  async canActivate(
-    context: ExecutionContext,
-  ): Promise<boolean> {
+  ) {}
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const payload = context.switchToWs().getData();
     const client = context.switchToWs().getClient();
 
@@ -26,9 +27,11 @@ export class SessionGuard implements CanActivate {
       tokenPayload = this.jwtService.verify(accessToken, {
         secret: process.env.JWT_ACCESS_TOKEN_SECRET,
       });
-      const hostInfo = await this.userservice.findUserByEmail(tokenPayload.email);
+      const hostInfo = await this.userservice.findUser(
+        tokenPayload.email,
+        tokenPayload.provider,
+      );
       payload.hostInfo = hostInfo;
-
     } catch (e) {
       Logger.error(e);
       client.emit('make_room', { result: false });
