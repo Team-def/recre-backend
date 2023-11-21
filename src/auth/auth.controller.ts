@@ -44,20 +44,7 @@ export class AuthController {
 
     Logger.debug(`access_token: ${access_token}`, 'AuthController');
 
-    response
-      .cookie('access_token', access_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-        sameSite: 'lax',
-        // secure: true, /// TODO: https 적용시 주석 해제
-      })
-      .cookie('refresh_token', refresh_token, {
-        sameSite: 'lax',
-        // secure: true, /// TODO: https 적용시 주석 해제
-      })
-      .redirect(
-        HttpStatus.PERMANENT_REDIRECT,
-        process.env.CLIENT_URL + '/token',
-      );
+    this.responseWithCookieAndRedirect(response, access_token, refresh_token);
   }
 
   /**
