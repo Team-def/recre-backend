@@ -24,8 +24,8 @@ export class User {
   })
   provider: string;
 
-  // @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  // createdDt: Date;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdDt: Date;
 
   // @Column({ type: 'varchar', length: 15 })
   // username: string;

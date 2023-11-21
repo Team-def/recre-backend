@@ -30,7 +30,7 @@ export class UserService {
     user.profileImage = createUserDto.profileImage;
     user.provider = createUserDto.provider;
     user.email = createUserDto.email;
-    // user.createdDt = new Date(Date.now());
+    user.createdDt = new Date(Date.now());
     return this.userRepository.save(user);
   }
 
