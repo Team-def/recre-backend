@@ -22,8 +22,9 @@ export class CreateUserDto {
   @IsEmail(null, { message: 'Please provide valid Email.' })
   email: string;
 
-  profileImage : string;
+  profileImage: string;
 
-  provider  : string;
-
+  @IsEnum(['naver', 'google', 'kakao'])
+  @IsNotEmpty()
+  provider: string;
 }

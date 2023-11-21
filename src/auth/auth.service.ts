@@ -17,7 +17,12 @@ export class AuthService {
   ) {}
 
   async googleLogin(req) {
-    const user = await this.userService.findUserByEmail(req.user.email);
+    const user = await this.userService.findUser(
+      req.user.email,
+      req.user.provider,
+    );
+    Logger.debug(JSON.stringify(user), 'AuthService');
+    // Logger.debug(JSON.stringify(req.user), 'AuthService');
     if (user === null) {
       this.googleResister(req);
       console.log('user is not member');
@@ -26,23 +31,23 @@ export class AuthService {
     }
   }
 
-  googleResister(req) {
+  async googleResister(req) {
     const newUser: CreateUserDto = new CreateUserDto();
     newUser.email = req.user.email;
     newUser.nickname = req.user.displayName;
     newUser.profileImage = req.user.picture;
     newUser.provider = 'google';
-    this.userService.createUser(newUser);
+    await this.userService.createUser(newUser);
   }
 
   async kakaoLogin(req): Promise<any> {
     if (!req.user) {
       throw new BadRequestException('No user from kakao');
     }
-    const { nickname, email, profile_image } = req.user;
+    const { nickname, email, profile_image, provider } = req.user;
 
     // Find user in db
-    const user = await this.userService.findUserByEmail(email);
+    const user = await this.userService.findUser(email, provider);
 
     // If no user found, create one
     if (!user) {
@@ -51,7 +56,7 @@ export class AuthService {
       newUser.nickname = nickname;
       newUser.profileImage = profile_image;
       newUser.provider = 'kakao';
-      this.userService.createUser(newUser);
+      await this.userService.createUser(newUser);
     }
 
     return {
@@ -64,10 +69,10 @@ export class AuthService {
     if (!req.user) {
       throw new BadRequestException('No user from naver');
     }
-    const { nickname, email, profile_image } = req.user;
+    const { nickname, email, profile_image, provider } = req.user;
 
     // Find user in db
-    const user = await this.userService.findUserByEmail(email);
+    const user = await this.userService.findUser(email, provider);
 
     // If no user found, create one
     if (!user) {
@@ -76,7 +81,7 @@ export class AuthService {
       newUser.nickname = nickname;
       newUser.profileImage = profile_image;
       newUser.provider = 'naver';
-      this.userService.createUser(newUser);
+      await this.userService.createUser(newUser);
     }
 
     return {
@@ -87,15 +92,17 @@ export class AuthService {
 
   async getJwtTokens(
     email: string,
+    provider: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
-    const userInfo = await this.userService.findUserByEmail(email);
+    const userInfo = await this.userService.findUser(email, provider);
+    Logger.debug(JSON.stringify(userInfo), 'getJwtTokens');
     const access_token = 'Bearer ' + this.getJwtAccessToken(userInfo);
     const refresh_token = 'Bearer ' + this.getJwtRefreshToken(userInfo);
     return { access_token, refresh_token };
   }
 
   getJwtAccessToken(userInfo: any) {
-    const payload = { email: userInfo.email };
+    const payload = { email: userInfo.email, provider: userInfo.provider };
     const token = this.jwtService.sign(payload, {
       secret: process.env.JWT_ACCESS_TOKEN_SECRET,
       expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME,
@@ -104,39 +111,12 @@ export class AuthService {
   }
 
   getJwtRefreshToken(userInfo: any) {
-    const payload = { email: userInfo.email };
+    const payload = { email: userInfo.email, provider: userInfo.provider };
     const token = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_TOKEN_SECRET,
       expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME,
     });
     return token;
-  }
-
-  getAccessTokenPayload(accessToken: string) {
-    let payload = null;
-    accessToken = accessToken.replace('Bearer ', '');
-    try {
-      payload = this.jwtService.verify(accessToken, {
-        secret: process.env.JWT_ACCESS_TOKEN_SECRET,
-      });
-    } catch (e) {
-      Logger.error(e);
-      switch (e.message) {
-        // 토큰에 대한 오류를 판단합니다.
-        case 'INVALID_TOKEN':
-        case 'TOKEN_IS_ARRAY':
-        case 'NO_USER':
-        // throw new HttpException('유효하지 않은 토큰입니다.', 401);
-
-        case 'EXPIRED_TOKEN':
-        // throw new HttpException('토큰이 만료되었습니다.', 410);
-
-        default:
-          // throw new HttpException('서버 오류입니다.', 500);
-          return false;
-      }
-    }
-    return payload;
   }
 
   async getJwtAccessTokenFromRefreshToken(refreshToken: string) {
@@ -146,6 +126,7 @@ export class AuthService {
       verify = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_REFRESH_TOKEN_SECRET,
       });
+      Logger.debug(JSON.stringify(verify), 'getJwtAccessTokenFromRefreshToken');
     } catch (e) {
       switch (e.message) {
         // 토큰에 대한 오류를 판단합니다.
@@ -161,8 +142,11 @@ export class AuthService {
           throw new HttpException('서버 오류입니다.', 500);
       }
     }
-    const userInfo = await this.userService.findUserByEmail(verify['email']);
-    const payload = { ...userInfo };
+    const userInfo = await this.userService.findUser(
+      verify['email'],
+      verify['provider'],
+    );
+    const payload = { email: userInfo.email, provider: userInfo.provider };
 
     const token =
       'Bearer ' +

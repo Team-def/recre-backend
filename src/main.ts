@@ -6,6 +6,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   app.use(cookieParser());
-  await app.listen(3001);
+  if (!process.env.LISTEN_PORT) {
+    throw new Error('LISTEN_PORT is not defined');
+  }
+  await app.listen(process.env.LISTEN_PORT);
 }
 bootstrap();

@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { NotFoundException } from '@nestjs/common';
+import { assert } from 'console';
 
 @Injectable()
 export class UserService {
@@ -13,7 +14,8 @@ export class UserService {
    * injecting repository here. Another approch can be Active records.
    */
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   /**
@@ -28,6 +30,7 @@ export class UserService {
     user.profileImage = createUserDto.profileImage;
     user.provider = createUserDto.provider;
     user.email = createUserDto.email;
+    // user.createdDt = new Date(Date.now());
     return this.userRepository.save(user);
   }
 
@@ -39,8 +42,18 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  findUserByEmail(email: string): Promise<User> {
-    return this.userRepository.findOneBy({ email });
+  findUser(email: string, provider: string): Promise<User> {
+    if (!email) {
+      throw new NotFoundException(`email not found`);
+    }
+    if (!provider) {
+      throw new NotFoundException(`provider not found`);
+    }
+    Logger.log(
+      `findUser: ${JSON.stringify({ email, provider })}`,
+      'UserService',
+    );
+    return this.userRepository.findOne({ where: { email, provider } });
   }
 
   /**
@@ -48,7 +61,6 @@ export class UserService {
    * @param id is type of number, which represent the id of user.
    * @returns promise of user
    */
-
   async viewUser(id: number): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
@@ -58,35 +70,25 @@ export class UserService {
   }
 
   /**
-   * this function is used to updated specific user whose id is passed in
-   * parameter along with passed updated data
-   * @param id is type of number, which represent the id of user.
-   * @param updateUserDto this is partial type of createUserDto.
+   * this function is used to update specific user information.
+   * @param email is type of string, which represent the email of user.
+   * @param _user this is updateUserDto, partial type of createUserDto.
    * @returns promise of udpate user
    */
-  updateUser(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user: User = new User();
-    user.nickname = updateUserDto.nickname;
-    // user.age = updateUserDto.age;
-    // user.email = updateUserDto.email;
-    // user.username = updateUserDto.username;
-    // user.id = id;
-    return this.userRepository.save(user);
+  async updateUser(email: string, provider: string, _user: UpdateUserDto) {
+    const user: User = await this.findUser(email, provider);
+    user.nickname = _user.nickname;
+    // user.profileImage = _user.profileImage;
+    this.userRepository.save(user);
+    return user;
   }
 
   /**
    * this function is used to remove or delete user from database.
-   * @param id is the type of number, which represent id of user
-   * @returns nuber of rows deleted or affected
+   * @param email is the type of string, which represent email of user
+   * @returns number of rows deleted or affected
    */
-  removeUser(id: number): Promise<{ affected?: number }> {
-    return this.userRepository.delete(id);
-  }
-
-  async updateUserInfo(email, _user: UpdateUserDto) {
-    const user: User = await this.findUserByEmail(email);
-    user.nickname = _user.nickname;
-    this.userRepository.save(user);
-    return user;
+  removeUser(email: string): Promise<{ affected?: number }> {
+    return this.userRepository.delete({ email });
   }
 }
