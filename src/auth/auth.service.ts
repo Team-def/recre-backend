@@ -84,7 +84,6 @@ export class AuthService {
     email: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const userInfo = await this.userService.findUserByEmail(email);
-    console.log(userInfo);
     const access_token = 'Bearer ' + this.getJwtAccessToken(userInfo);
     const refresh_token = 'Bearer ' + this.getJwtRefreshToken(userInfo);
     return { access_token, refresh_token };

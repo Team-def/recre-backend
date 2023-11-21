@@ -24,6 +24,5 @@ export class CreateUserDto {
 
   profileImage: string;
 
-  provider  : string;
-
+  provider: string;
 }
