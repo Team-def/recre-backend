@@ -6,7 +6,7 @@ import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import cookieParser from 'cookie-parser';
+import { SessionModule } from './session/session.module';
 
 @Module({
   imports: [
@@ -24,6 +24,7 @@ import cookieParser from 'cookie-parser';
     }),
     UserModule,
     AuthModule,
+    SessionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

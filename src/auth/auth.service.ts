@@ -21,13 +21,13 @@ export class AuthService {
     }
   }
 
-  googleResister(req) {
+  async googleResister(req) {
     const newUser: CreateUserDto = new CreateUserDto();
     newUser.email = req.user.email;
     newUser.nickname = req.user.displayName;
     newUser.profileImage = req.user.picture;
     newUser.provider = 'google';
-    this.userService.createUser(newUser);
+    await this.userService.createUser(newUser);
   }
 
   async kakaoLogin(req): Promise<any> {
@@ -46,7 +46,7 @@ export class AuthService {
       newUser.nickname = nickname;
       newUser.profileImage = profile_image;
       newUser.provider = 'kakao';
-      this.userService.createUser(newUser);
+      await this.userService.createUser(newUser);
     }
 
     return {
@@ -71,7 +71,7 @@ export class AuthService {
       newUser.nickname = nickname;
       newUser.profileImage = profile_image;
       newUser.provider = 'naver';
-      this.userService.createUser(newUser);
+      await this.userService.createUser(newUser);
     }
 
     return {

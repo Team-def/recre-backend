@@ -19,7 +19,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const request = context.switchToHttp().getRequest();
 
     const { authorization } = request.headers;
-
     if (authorization === undefined) {
       throw new HttpException('Token 전송 안됨', HttpStatus.UNAUTHORIZED);
     }
