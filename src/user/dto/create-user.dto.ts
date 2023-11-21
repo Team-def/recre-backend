@@ -24,7 +24,7 @@ export class CreateUserDto {
 
   profileImage: string;
 
-  @IsString()
+  @IsEnum(['naver', 'google', 'kakao'])
   @IsNotEmpty()
   provider: string;
 }
