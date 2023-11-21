@@ -311,6 +311,7 @@ export class SessionGateway
       clientEntity.nickname = nickname;
       this.roomidToPlayerSet.get(Number(room_id)).add(uuId.toString());
       client.join(room_id.toString());
+      client.emit('ready', { result: true, message: '게임에 참가하였습니다.' });
     }
 
     Logger.log("게임 참가자: " + nickname + " 룸 번호: " + room_id + " 총 참가 인원: " +
@@ -418,9 +419,21 @@ export class SessionGateway
     this.clientsLastActivity.delete(uuId);
   }
 
+  syncGameRoomInfo(){
+    this.catchGameRoom.forEach((value, key) => {
+      const hostuuid = this.roomIdToHostId.get(key);
+      const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
+      host.emit('player_list_add', { player_cnt: value.current_user_num, nickname: null });
+    })
+  }
+
   onModuleInit() {
     setInterval(() => {
+      this.syncGameRoomInfo();
+    }, 3000);
+
+    setInterval(() => {
       this.checkInactiveClients();
-    }, 2000);
+    }, 4000);
   }
 }
