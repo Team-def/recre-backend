@@ -43,7 +43,12 @@ export class UserService {
   }
 
   findUser(email: string, provider: string): Promise<User> {
-    assert(provider, 'provider is required');
+    if (!email) {
+      throw new NotFoundException(`email not found`);
+    }
+    if (!provider) {
+      throw new NotFoundException(`provider not found`);
+    }
     Logger.log(
       `findUser: ${JSON.stringify({ email, provider })}`,
       'UserService',

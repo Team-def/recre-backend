@@ -102,7 +102,7 @@ export class AuthService {
   }
 
   getJwtAccessToken(userInfo: any) {
-    const payload = { ...userInfo };
+    const payload = { email: userInfo.email, provider: userInfo.provider };
     const token = this.jwtService.sign(payload, {
       secret: process.env.JWT_ACCESS_TOKEN_SECRET,
       expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME,
@@ -111,7 +111,7 @@ export class AuthService {
   }
 
   getJwtRefreshToken(userInfo: any) {
-    const payload = { ...userInfo };
+    const payload = { email: userInfo.email, provider: userInfo.provider };
     const token = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_TOKEN_SECRET,
       expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME,
@@ -146,7 +146,7 @@ export class AuthService {
       verify['email'],
       verify['provider'],
     );
-    const payload = { ...userInfo };
+    const payload = { email: userInfo.email, provider: userInfo.provider };
 
     const token =
       'Bearer ' +
