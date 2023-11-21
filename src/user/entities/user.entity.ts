@@ -17,11 +17,15 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   profileImage: string;
 
-  @Column({ type: 'enum', enum: ['naver', 'google', 'kakao'], nullable: false })
+  @Column({
+    type: 'enum',
+    enum: ['naver', 'google', 'kakao'],
+    nullable: false,
+  })
   provider: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdDt: Date;
+  // @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  // createdDt: Date;
 
   // @Column({ type: 'varchar', length: 15 })
   // username: string;

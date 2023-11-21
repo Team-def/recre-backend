@@ -19,7 +19,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const request = context.switchToHttp().getRequest();
 
     const { authorization } = request.headers;
-
     if (authorization === undefined) {
       throw new HttpException('Token 전송 안됨', HttpStatus.UNAUTHORIZED);
     }
@@ -34,7 +33,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   validateToken(token: string) {
     const secretKey = process.env.JWT_ACCESS_TOKEN_SECRET;
     try {
-      const payload = this.jwtService.verify(token, { secret: secretKey });
+      const payload = this.jwtService.verify(token, {
+        secret: secretKey,
+      });
       return payload;
     } catch (e) {
       switch (e.name) {

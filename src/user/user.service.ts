@@ -13,7 +13,8 @@ export class UserService {
    * injecting repository here. Another approch can be Active records.
    */
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   /**
@@ -28,6 +29,7 @@ export class UserService {
     user.profileImage = createUserDto.profileImage;
     user.provider = createUserDto.provider;
     user.email = createUserDto.email;
+    // user.createdDt = new Date(Date.now());
     return this.userRepository.save(user);
   }
 
