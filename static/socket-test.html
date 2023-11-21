@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket with Socket.IO Example</title>
+    <!-- Socket.IO 클라이언트 라이브러리 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+</head>
+
+<body>
+
+    <button onclick="connectWebSocket()">WebSocket 연결</button>
+    <button onclick="sendMessage()">메시지 보내기</button>
+
+    <script>
+        let socket;
+
+        function connectWebSocket() {
+            // 서버 주소 (NestJS Socket.IO 서버 주소로 변경)
+            const serverUrl = 'http://treepark.link:8000';
+
+            // forceNew 옵션을 사용하여 WebSocket만 사용
+            socket = io(serverUrl, { transports: ['websocket']}).emit('connect',{uuuu:'uuuu'});
+
+            // 연결이 열리면 실행되는 이벤트 핸들러
+            socket.on('connect', () => {
+                console.log('WebSocket 연결이 열렸습니다.');
+            });
+
+            // 메시지 수신 시 실행되는 이벤트 핸들러
+            socket.on('messageFromServer', (data) => {
+                console.log('서버로부터 수신한 메시지:', data);
+                // 여기서 적절한 동작 수행
+            });
+
+            // 연결이 닫힐 때 실행되는 이벤트 핸들러
+            socket.on('disconnect', () => {
+                console.log('WebSocket 연결이 닫혔습니다.');
+            });
+
+            // // 타임아웃
+            // socket.on('connect', () => {
+            //     console.log('WebSocket 연결 확인.');
+            // });
+        }
+
+        function sendMessage() {
+            if (socket && socket.connected) {
+                const message = 'Hello, server!';
+                // WebSocket을 통해 메시지 전송
+                socket.emit('send_message', { message });
+            } else {
+                console.error('WebSocket 연결이 열려있지 않습니다.');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

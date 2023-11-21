@@ -23,7 +23,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new HttpException('Token 전송 안됨', HttpStatus.UNAUTHORIZED);
     }
 
-    const token = authorization.replace('Bearer ', '');
+    const token = authorization.replace(/["']/g, '').replace('Bearer ', ''); // Remove quotation marks and 'Bearer ' prefix
+
+    Logger.debug(`token = ${token}`, 'JwtAuthGuard');
 
     request.payload = this.validateToken(token);
 
@@ -32,16 +34,19 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   validateToken(token: string) {
     const secretKey = process.env.JWT_ACCESS_TOKEN_SECRET;
+    let payload;
     try {
-      const payload = this.jwtService.verify(token, {
+      payload = this.jwtService.verify(token, {
         secret: secretKey,
       });
       return payload;
     } catch (e) {
       switch (e.name) {
         // 토큰에 대한 오류를 판단합니다.
-        case 'JsonWebTokenError':
+        case 'JsonWebTokenError': {
+          Logger.error(`payload: ${JSON.stringify(payload)}`, `JwtAuthGuard`);
           throw new HttpException('유효하지 않은 토큰입니다.', 401);
+        }
 
         case 'TokenExpiredError':
           throw new HttpException('토큰이 만료되었습니다.', 410);

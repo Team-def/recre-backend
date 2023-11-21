@@ -9,6 +9,6 @@ import { SessionGuard } from './session.guard';
 
 @Module({
   imports: [JwtModule.register({}), TypeOrmModule.forFeature([User])],
-  providers: [SessionGateway, AuthService, UserService, SessionGuard],
+  providers: [SessionGateway, AuthService, UserService, SessionGuard,],
 })
 export class SessionModule {}
