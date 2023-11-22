@@ -8,6 +8,7 @@ import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { UserService } from 'src/user/user.service';
+import { normalizeToken } from './normalize-token';
 
 @Injectable()
 export class AuthService {
@@ -121,25 +122,32 @@ export class AuthService {
 
   async getJwtAccessTokenFromRefreshToken(refreshToken: string) {
     let verify: object | Buffer;
-    refreshToken = refreshToken.replace('Bearer ', '');
+    refreshToken = normalizeToken(refreshToken);
     try {
       verify = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_REFRESH_TOKEN_SECRET,
       });
-      Logger.debug(JSON.stringify(verify), 'getJwtAccessTokenFromRefreshToken');
+      Logger.debug(
+        `verify: ${JSON.stringify(verify)}`,
+        'getJwtAccessTokenFromRefreshToken',
+      );
     } catch (e) {
       switch (e.message) {
         // 토큰에 대한 오류를 판단합니다.
         case 'INVALID_TOKEN':
         case 'TOKEN_IS_ARRAY':
-        case 'NO_USER':
+        case 'NO_USER': {
           throw new HttpException('유효하지 않은 토큰입니다.', 401);
+        }
 
-        case 'EXPIRED_TOKEN':
+        case 'EXPIRED_TOKEN': {
           throw new HttpException('토큰이 만료되었습니다.', 410);
+        }
 
-        default:
+        default: {
+          Logger.error(`UNDEFINED_ERROR`, `getJwtAccessTokenFromRefreshToken`);
           throw new HttpException('서버 오류입니다.', 500);
+        }
       }
     }
     const userInfo = await this.userService.findUser(
@@ -148,13 +156,8 @@ export class AuthService {
     );
     const payload = { email: userInfo.email, provider: userInfo.provider };
 
-    const token =
-      'Bearer ' +
-      this.jwtService.sign(payload, {
-        secret: process.env.JWT_ACCESS_TOKEN_SECRET,
-        expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME,
-      });
-    return token;
+    const access_token = this.getJwtAccessToken(payload);
+    return 'Bearer ' + access_token;
   }
 
   // async verifyJwtAccessToken(accessToken: string) {
