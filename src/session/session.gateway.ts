@@ -427,6 +427,15 @@ export class SessionGateway
     })
   }
 
+  @UseGuards(SessionGuard)
+  @SubscribeMessage('draw')
+  handleDraw(client: any, canvasData: any): void {
+    // 클라이언트로 그림 데이터 및 캔버스 정보 전송
+    Logger.log('draw: 헀다');
+    this.server.emit('draw', canvasData);
+  }
+
+
   onModuleInit() {
     setInterval(() => {
       this.syncGameRoomInfo();
