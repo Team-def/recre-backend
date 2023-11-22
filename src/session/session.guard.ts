@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from 'src/auth/auth.service';
+import { normalizeToken } from 'src/auth/normalize-token';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
@@ -21,7 +22,7 @@ export class SessionGuard implements CanActivate {
 
     let accessToken = payload.access_token;
     let tokenPayload = null;
-    accessToken = accessToken.replace('Bearer ', '');
+    accessToken = normalizeToken(accessToken);
     try {
       //엑서스 토큰 검증
       tokenPayload = this.jwtService.verify(accessToken, {
