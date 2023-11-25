@@ -8,7 +8,7 @@ import { User } from 'src/user/entities/user.entity';
 import { SessionGuard } from './session.guard';
 
 @Module({
-  imports: [JwtModule.register({}), TypeOrmModule.forFeature([User])],
-  providers: [SessionGateway, AuthService, UserService, SessionGuard,],
+    imports: [JwtModule.register({}), TypeOrmModule.forFeature([User])],
+    providers: [SessionGateway, AuthService, UserService, SessionGuard],
 })
 export class SessionModule {}
