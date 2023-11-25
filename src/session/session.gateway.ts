@@ -116,6 +116,7 @@ export class SessionGateway
             return;
         }
 
+        this.uuidToclientEntity.get(uuId).clientSocket = null;
         this.socketTouuid.delete(client.id);
         this.connectedSockets.delete(client.id);
     }
@@ -125,33 +126,44 @@ export class SessionGateway
         const timeout = 15 * 60 * 1000; // 10 minutes (adjust as needed)
 
         // console.log(this.clientsLastActivity.size)
-        this.clientsLastActivity.forEach((client, clientId) => {
+        this.clientsLastActivity.forEach((client, uuId) => {
             // console.log(client, clientId);
             const currentTime = Date.now();
             const lastActivityTime = client.lastActivity;
 
             if (currentTime - lastActivityTime > timeout) {
-                const clientEntity = this.uuidToclientEntity.get(clientId);
+                const clientEntity = this.uuidToclientEntity.get(uuId);
                 //호스트의 경우 자동 접속해제 해제
                 if (clientEntity.roles === 'host') {
                     // console.log("호스트 접속 종료: ", clientId);
                     // this.end(clientEntity.clientSocket, { room_id: clientEntity.roomId.toString() });
                     return;
                 }
-                clientEntity.clientSocket.emit(
-                    'forceDisconnect',
-                    'Inactive for too long',
-                ); //deprecated
-                if (clientEntity.clientSocket !== null)
-                    this.custumDisconnect(clientEntity.clientSocket);
+                if (clientEntity.clientSocket !== null) {
+                    clientEntity.clientSocket.emit(
+                        'forceDisconnect',
+                        'Inactive for too long',
+                    ); //deprecated
+                }
+                this.custumDisconnect(uuId);
             }
         });
     }
 
     @SubscribeMessage('leave_game')
-    custumDisconnect(client: Socket) {
+    leaveGame(client: Socket,) {
         const uuId = this.socketTouuid.get(client.id);
+        this.custumDisconnect(uuId);
 
+    }
+
+    custumDisconnect(uuId: string) {
+        console.log('커스텀 접속 종료: ', uuId);
+        // const uuId = this.socketTouuid.get(client.id)
+
+        const client = this.uuidToclientEntity.get(uuId).clientSocket;
+
+        if (this.uuidToclientEntity.get(uuId) === undefined) return;
         if (
             this.roomidToPlayerSet.has(this.uuidToclientEntity.get(uuId).roomId)
         ) {
@@ -185,11 +197,14 @@ export class SessionGateway
                 player_cnt: catchGame.current_user_num,
                 nickname: enstity.nickname,
             });
-            client.emit('leave_game', { result: true });
         }
 
-        this.dellConnectionInfo(client);
-        client.disconnect();
+        // const client = this.uuidToclientEntity.get(uuId).clientSocket;
+        if (client !== null) {
+            client.emit('leave_game', { result: true });
+            client.disconnect();
+        }
+        this.dellConnectionInfo(uuId);
 
     }
 
@@ -439,7 +454,7 @@ export class SessionGateway
 
         for (let uuId of this.roomidToPlayerSet.get(room_id)) {
             Logger.log('게임 종료: ' + uuId);
-            this.custumDisconnect(this.uuidToclientEntity.get(uuId).clientSocket);  //캐치 게임 종료시 플레이어 접속 종료
+            this.custumDisconnect(uuId);  //캐치 게임 종료시 플레이어 접속 종료
         }
 
         this.catchGameRoom.delete(room_id);
@@ -492,8 +507,6 @@ export class SessionGateway
         // this.roomIdToHostId.delete(Number(room_id));
 
 
-
-
         const uuId = this.socketTouuid.get(client.id);
         // 소켓 -> uuid 제거
         this.socketTouuid.delete(
@@ -538,23 +551,32 @@ export class SessionGateway
         client.emit('set_catch_answer', { result: true, answer: ans });
     }
 
-    dellConnectionInfo(client: Socket) {
-        const uuId = this.socketTouuid.get(client.id);
-        this.socketTouuid.delete(client.id);
+    dellConnectionInfo(uuId: string) {
+        // const uuId = this.socketTouuid.get(client.id);
+        const client = this.uuidToclientEntity.get(uuId).clientSocket;
+        if (client !== null)
+            this.socketTouuid.delete(client.id);
         this.uuidToclientEntity.delete(uuId);
         this.clientsLastActivity.delete(uuId);
     }
 
-    syncGameRoomInfo() {
-        this.catchGameRoom.forEach((value, key) => {
-            const hostuuid = this.roomIdToHostId.get(key);
-            const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
-            host.emit('player_list_add', {
-                player_cnt: value.current_user_num,
-                nickname: null,
-            });
-        });
-    }
+    // syncGameRoomInfo() {
+    //     for (let room of this.catchGameRoom.values()) {
+    //         const host_socket = this.uuidToclientEntity.get(room.host).clientSocket;
+    //         host_socket.emit('player_list_add', {
+    //             player_cnt: value.current_user_num,
+    //             nickname: null,
+    //         Logger.log('게임 종료: ' + uuId);
+    //         this.custumDisconnect(this.uuidToclientEntity.get(uuId).clientSocket);  //캐치 게임 종료시 플레이어 접속 종료
+    //     }
+
+    //     this.catchGameRoom.forEach((value, key) => {
+    //         const hostuuid = this.roomIdToHostId.get(key);
+    //         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
+
+    //         });
+    //     });
+    // }
 
     // @UseGuards(SessionGuard)
     @SubscribeMessage('draw')
@@ -581,9 +603,9 @@ export class SessionGateway
     }
 
     onModuleInit() {
-        setInterval(() => {
-            this.syncGameRoomInfo();
-        }, 3000);
+        // setInterval(() => {
+        //     this.syncGameRoomInfo();
+        // }, 3000);
 
         setInterval(() => {
             this.checkInactiveClients();
