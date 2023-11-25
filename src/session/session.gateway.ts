@@ -25,9 +25,8 @@ import { SessionGuard } from './session.guard';
     reconnectionDelay: 1000,
 })
 export class SessionGateway
-    implements OnGatewayConnection, OnGatewayDisconnect
-{
-    constructor() {}
+    implements OnGatewayConnection, OnGatewayDisconnect {
+    constructor() { }
     @WebSocketServer()
     server: Server;
 
@@ -216,11 +215,11 @@ export class SessionGateway
             Logger.log('게임 참가자 나감: ' + uuId);
             Logger.log(
                 '게임 참가자: ' +
-                    enstity.nickname +
-                    ' 룸 번호: ' +
-                    enstity.roomId +
-                    ' 총 참가 인원: ' +
-                    catchGame.current_user_num,
+                enstity.nickname +
+                ' 룸 번호: ' +
+                enstity.roomId +
+                ' 총 참가 인원: ' +
+                catchGame.current_user_num,
             );
 
             host.emit('player_list_remove', {
@@ -370,9 +369,9 @@ export class SessionGateway
 
         Logger.log(
             'start_catch_game:' +
-                room_id +
-                ' ' +
-                this.roomIdToHostId.get(Number(room_id)),
+            room_id +
+            ' ' +
+            this.roomIdToHostId.get(Number(room_id)),
         );
         Logger.log(typeof room_id);
         const room = this.catchGameRoom.get(Number(room_id));
@@ -403,6 +402,7 @@ export class SessionGateway
             );
             return;
         }
+
 
         const room = this.catchGameRoom.get(Number(room_id));
         const uuId = this.socketTouuid.get(client.id);
@@ -452,13 +452,13 @@ export class SessionGateway
 
         Logger.log(
             '게임 참가자: ' +
-                nickname +
-                ' 룸 번호: ' +
-                room_id +
-                ' 총 참가 인원: ' +
-                room.user_num +
-                ' 현재 참가 인원: ' +
-                room.current_user_num,
+            nickname +
+            ' 룸 번호: ' +
+            room_id +
+            ' 총 참가 인원: ' +
+            room.user_num +
+            ' 현재 참가 인원: ' +
+            room.current_user_num,
         );
         const hostuuid = this.roomIdToHostId.get(Number(room_id));
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
@@ -505,11 +505,13 @@ export class SessionGateway
                 answer: room.correctAnswer,
                 nickname: clientEntity.nickname,
             });
-            this.server.to(clientEntity.roomId.toString()).emit('correct', {
-                result: true,
-                answer: room.correctAnswer,
-                nickname: clientEntity.nickname,
-            });
+            this.server
+                .to(clientEntity.roomId.toString())
+                .emit('correct', {
+                    result: true,
+                    answer: room.correctAnswer,
+                    nickname: clientEntity.nickname,
+                });
         } else {
             Logger.log('틀림: ' + ans);
             host.emit('incorrect', {
