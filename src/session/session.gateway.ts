@@ -14,7 +14,7 @@ import { Catch } from './game/catch';
 import { ClientEntity } from './cliententity/client.entity';
 import { SessionGuard } from './session.guard';
 
-@WebSocketGateway(5003, {
+@WebSocketGateway({
     transports: ['websocket'],
     pingInterval: 3000,
     pingTimeout: 10000,
@@ -25,8 +25,9 @@ import { SessionGuard } from './session.guard';
     reconnectionDelay: 1000,
 })
 export class SessionGateway
-    implements OnGatewayConnection, OnGatewayDisconnect {
-    constructor() { }
+    implements OnGatewayConnection, OnGatewayDisconnect
+{
+    constructor() {}
     @WebSocketServer()
     server: Server;
 
@@ -215,11 +216,11 @@ export class SessionGateway
             Logger.log('게임 참가자 나감: ' + uuId);
             Logger.log(
                 '게임 참가자: ' +
-                enstity.nickname +
-                ' 룸 번호: ' +
-                enstity.roomId +
-                ' 총 참가 인원: ' +
-                catchGame.current_user_num,
+                    enstity.nickname +
+                    ' 룸 번호: ' +
+                    enstity.roomId +
+                    ' 총 참가 인원: ' +
+                    catchGame.current_user_num,
             );
 
             host.emit('player_list_remove', {
@@ -369,9 +370,9 @@ export class SessionGateway
 
         Logger.log(
             'start_catch_game:' +
-            room_id +
-            ' ' +
-            this.roomIdToHostId.get(Number(room_id)),
+                room_id +
+                ' ' +
+                this.roomIdToHostId.get(Number(room_id)),
         );
         Logger.log(typeof room_id);
         const room = this.catchGameRoom.get(Number(room_id));
@@ -403,14 +404,13 @@ export class SessionGateway
             return;
         }
 
-
         const room = this.catchGameRoom.get(Number(room_id));
         const uuId = this.socketTouuid.get(client.id);
         this.clientsLastActivity.set(uuId.toString(), {
             lastActivity: Date.now(),
         });
 
-        if(room.status !== 0) {
+        if (room.status !== 0) {
             console.log('게임이 이미 시작되었습니다.');
             client.emit('ready', {
                 result: false,
@@ -452,13 +452,13 @@ export class SessionGateway
 
         Logger.log(
             '게임 참가자: ' +
-            nickname +
-            ' 룸 번호: ' +
-            room_id +
-            ' 총 참가 인원: ' +
-            room.user_num +
-            ' 현재 참가 인원: ' +
-            room.current_user_num,
+                nickname +
+                ' 룸 번호: ' +
+                room_id +
+                ' 총 참가 인원: ' +
+                room.user_num +
+                ' 현재 참가 인원: ' +
+                room.current_user_num,
         );
         const hostuuid = this.roomIdToHostId.get(Number(room_id));
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
@@ -505,13 +505,11 @@ export class SessionGateway
                 answer: room.correctAnswer,
                 nickname: clientEntity.nickname,
             });
-            this.server
-                .to(clientEntity.roomId.toString())
-                .emit('correct', {
-                    result: true,
-                    answer: room.correctAnswer,
-                    nickname: clientEntity.nickname,
-                });
+            this.server.to(clientEntity.roomId.toString()).emit('correct', {
+                result: true,
+                answer: room.correctAnswer,
+                nickname: clientEntity.nickname,
+            });
         } else {
             Logger.log('틀림: ' + ans);
             host.emit('incorrect', {
@@ -621,7 +619,7 @@ export class SessionGateway
         try {
             const { room_id } = canvasData;
             this.server.to(room_id.toString()).emit('draw', canvasData);
-        } catch (error) { }
+        } catch (error) {}
     }
 
     // @UseGuards(SessionGuard)
@@ -634,7 +632,7 @@ export class SessionGateway
             this.server
                 .to(room_id.toString())
                 .emit('clear_draw', { result: true });
-        } catch (error) { }
+        } catch (error) {}
     }
 
     onModuleInit() {
