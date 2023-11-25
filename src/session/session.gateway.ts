@@ -14,7 +14,7 @@ import { Catch } from './game/catch';
 import { ClientEntity } from './cliententity/client.entity';
 import { SessionGuard } from './session.guard';
 
-@WebSocketGateway(5003, {
+@WebSocketGateway({
     transports: ['websocket'],
     pingInterval: 3000,
     pingTimeout: 10000,
@@ -410,7 +410,7 @@ export class SessionGateway
             lastActivity: Date.now(),
         });
 
-        if(room.status !== 0) {
+        if (room.status !== 0) {
             console.log('게임이 이미 시작되었습니다.');
             client.emit('ready', {
                 result: false,
@@ -621,7 +621,7 @@ export class SessionGateway
         try {
             const { room_id } = canvasData;
             this.server.to(room_id.toString()).emit('draw', canvasData);
-        } catch (error) { }
+        } catch (error) {}
     }
 
     // @UseGuards(SessionGuard)
@@ -634,7 +634,7 @@ export class SessionGateway
             this.server
                 .to(room_id.toString())
                 .emit('clear_draw', { result: true });
-        } catch (error) { }
+        } catch (error) {}
     }
 
     onModuleInit() {
