@@ -125,11 +125,13 @@ export class AuthController {
     response
       .cookie('access_token', access_token, {
         expires: new Date(Date.now() + 1000 * 60),
-        sameSite: 'lax',
+        domain: process.env.DOMAIN,
+        // sameSite: 'lax',
         // secure: true, /// TODO: https 적용시 주석 해제
       })
       .cookie('refresh_token', refresh_token, {
-        sameSite: 'lax',
+        domain: process.env.DOMAIN,
+        // sameSite: 'lax',
         // secure: true, /// TODO: https 적용시 주석 해제
       })
       .redirect(
