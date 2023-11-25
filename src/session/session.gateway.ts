@@ -16,7 +16,7 @@ import { SessionGuard } from './session.guard';
 import { constrainedMemory } from 'process';
 import { log } from 'console';
 
-@WebSocketGateway(+process.env.SOCKET_PORT, {
+@WebSocketGateway(5004, {
     transports: ['websocket'],
     pingInterval: 3000,
     pingTimeout: 10000,
