@@ -438,9 +438,46 @@ export class SessionGateway
                 incorrectAnswer: ans,
                 nickname: clientEntity.nickname,
             });
+            client.emit('incorrect', {
+                    message: '땡!',
+            });
+
         }
     }
 
+    //감정 표현
+    @SubscribeMessage('express_emotion')
+    async expressEmotion(
+        client: Socket,
+        payload: { room_id: string; emotion: string },
+    ) {
+        const { emotion } = payload;
+        const uuId = this.socketTouuid.get(client.id);
+        const clientEntity = this.uuidToclientEntity.get(uuId);
+        this.clientsLastActivity.set(uuId.toString(), {
+            lastActivity: Date.now(),
+        });
+
+        if (
+            clientEntity.roomId === 0 ||
+            emotion === undefined ||
+            !this.catchGameRoom.has(clientEntity.roomId)
+        ) {
+            return;
+        }
+        const room = this.catchGameRoom.get(clientEntity.roomId);
+        Logger.log('게임 상태' + room.status);
+        if (room.status !== 1) {
+            return;
+        }
+        const hostuuid = this.roomIdToHostId.get(clientEntity.roomId);
+        const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
+        Logger.log('감정 표현: ' + emotion);
+        host.emit('express_emotion', {
+            emotion: emotion,
+            // nickname: clientEntity.nickname,
+        });
+    }
 
     private destroyCatchGame(room_id: number) {
 
@@ -529,7 +566,7 @@ export class SessionGateway
         const hostuuId = this.roomIdToHostId.get(Number(payload.room_id));
         if (hostuuId === undefined) {
             client.emit('set_catch_answer', {
-                result: false,
+                type: 'not_found_room',
                 message: '방이 존재하지 않습니다.',
             });
             return;
@@ -545,10 +582,20 @@ export class SessionGateway
         const { room_id, ans } = payload;
         const room = this.catchGameRoom.get(Number(room_id));
 
+        if (room.status !== 0) {
+            console.log('게임이 이미 시작되었습니다.');
+            client.emit('set_catch_answer', {
+                type: 'already_started',
+                message: '게임이 이미 시작되었습니다.',
+            });
+            console.log('정답:', room.correctAnswer)
+            return;
+        }
+
         room.correctAnswer = ans;
         Logger.log(room_id + '번방 정답 설정: ' + ans);
-        host.emit('set_catch_answer', { result: true, answer: ans });
-        client.emit('set_catch_answer', { result: true, answer: ans });
+        host.emit('set_catch_answer', { type: 'answer_success', answer: ans });
+        client.emit('set_catch_answer', { type: 'answer_success', answer: ans });
     }
 
     dellConnectionInfo(uuId: string) {
