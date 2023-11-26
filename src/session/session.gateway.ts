@@ -584,6 +584,15 @@ export class SessionGateway
         const { room_id, ans } = payload;
         const room = this.catchGameRoom.get(Number(room_id));
 
+        if (room.status !== 0) {
+            console.log('게임이 이미 시작되었습니다.');
+            client.emit('set_catch_answer', {
+                result: false,
+                message: '게임이 이미 시작되었습니다.',
+            });
+            return;
+        }
+
         room.correctAnswer = ans;
         Logger.log(room_id + '번방 정답 설정: ' + ans);
         host.emit('set_catch_answer', { result: true, answer: ans });
