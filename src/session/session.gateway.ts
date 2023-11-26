@@ -439,10 +439,8 @@ export class SessionGateway
                 nickname: clientEntity.nickname,
             });
             client.emit('incorrect', {
-                    result: true,
-                    incorrectAnswer: ans,
-                    nickname: clientEntity.nickname,
-                });
+                    message: '땡!',
+            });
 
         }
     }
@@ -568,7 +566,7 @@ export class SessionGateway
         const hostuuId = this.roomIdToHostId.get(Number(payload.room_id));
         if (hostuuId === undefined) {
             client.emit('set_catch_answer', {
-                result: false,
+                type: 'not_found_room',
                 message: '방이 존재하지 않습니다.',
             });
             return;
@@ -587,16 +585,17 @@ export class SessionGateway
         if (room.status !== 0) {
             console.log('게임이 이미 시작되었습니다.');
             client.emit('set_catch_answer', {
-                result: false,
+                type: 'already_started',
                 message: '게임이 이미 시작되었습니다.',
             });
+            console.log('정답:', room.correctAnswer)
             return;
         }
 
         room.correctAnswer = ans;
         Logger.log(room_id + '번방 정답 설정: ' + ans);
-        host.emit('set_catch_answer', { result: true, answer: ans });
-        client.emit('set_catch_answer', { result: true, answer: ans });
+        host.emit('set_catch_answer', { type: 'answer_success', answer: ans });
+        client.emit('set_catch_answer', { type: 'answer_success', answer: ans });
     }
 
     dellConnectionInfo(uuId: string) {
