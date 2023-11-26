@@ -438,9 +438,48 @@ export class SessionGateway
                 incorrectAnswer: ans,
                 nickname: clientEntity.nickname,
             });
+            client.emit('incorrect', {
+                    result: true,
+                    incorrectAnswer: ans,
+                    nickname: clientEntity.nickname,
+                });
+
         }
     }
 
+    //감정 표현
+    @SubscribeMessage('express_emotion')
+    async expressEmotion(
+        client: Socket,
+        payload: { room_id: string; emotion: string },
+    ) {
+        const { emotion } = payload;
+        const uuId = this.socketTouuid.get(client.id);
+        const clientEntity = this.uuidToclientEntity.get(uuId);
+        this.clientsLastActivity.set(uuId.toString(), {
+            lastActivity: Date.now(),
+        });
+
+        if (
+            clientEntity.roomId === 0 ||
+            emotion === undefined ||
+            !this.catchGameRoom.has(clientEntity.roomId)
+        ) {
+            return;
+        }
+        const room = this.catchGameRoom.get(clientEntity.roomId);
+        Logger.log('게임 상태' + room.status);
+        if (room.status !== 1) {
+            return;
+        }
+        const hostuuid = this.roomIdToHostId.get(clientEntity.roomId);
+        const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
+        Logger.log('감정 표현: ' + emotion);
+        host.emit('express_emotion', {
+            emotion: emotion,
+            // nickname: clientEntity.nickname,
+        });
+    }
 
     private destroyCatchGame(room_id: number) {
 
