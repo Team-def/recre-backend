@@ -6,9 +6,19 @@ import { UserService } from 'src/user/user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { SessionGuard } from './session.guard';
+import { RedGreenGateway } from './game/redgreen.gateway';
+import { CatchGateway } from './game/catch.gateway';
+import { RedGreenService } from './game/redgreen.service';
 
 @Module({
     imports: [JwtModule.register({}), TypeOrmModule.forFeature([User])],
-    providers: [SessionGateway, AuthService, UserService, SessionGuard],
+    providers: [
+        CatchGateway,
+        RedGreenGateway,
+        AuthService,
+        UserService,
+        RedGreenService,
+        SessionGuard,
+    ],
 })
 export class SessionModule {}

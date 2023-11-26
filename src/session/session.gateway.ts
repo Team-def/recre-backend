@@ -2,7 +2,6 @@ import { Logger, UseGuards } from '@nestjs/common';
 
 import {
     SubscribeMessage,
-    WebSocketGateway,
     WebSocketServer,
     OnGatewayConnection,
     OnGatewayDisconnect,
@@ -14,42 +13,31 @@ import { Catch } from './game/catch';
 import { ClientEntity } from './cliententity/client.entity';
 import { SessionGuard } from './session.guard';
 
-@WebSocketGateway({
-    transports: ['websocket'],
-    pingInterval: 3000,
-    pingTimeout: 10000,
-    cookie: false,
-    serveClient: false,
-    reconnection: true,
-    reconnectionAttempts: 3,
-    reconnectionDelay: 1000,
-})
 export class SessionGateway
-    implements OnGatewayConnection, OnGatewayDisconnect {
-    constructor() { }
+    implements OnGatewayConnection, OnGatewayDisconnect
+{
+    constructor() {}
     @WebSocketServer()
     server: Server;
 
     //접속된 전체 소켓
-    private connectedSockets: Map<string, Socket> = new Map();
+    connectedSockets: Map<string, Socket> = new Map();
 
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
-    private readonly clientsLastActivity: Map<
-        string,
-        { lastActivity: number }
-    > = new Map();
+    readonly clientsLastActivity: Map<string, { lastActivity: number }> =
+        new Map();
 
     // < room_id, uuid >, 방 번호로 호스트 조회
-    private roomIdToHostId: Map<number, string> = new Map();
+    roomIdToHostId: Map<number, string> = new Map();
 
     // <uuid, clientEntity>, uuid 로 클라이언트 정보 접근
-    private uuidToclientEntity: Map<string, ClientEntity> = new Map();
+    uuidToclientEntity: Map<string, ClientEntity> = new Map();
 
     // < socket, uuid > 소켓으로 uuid 접근
-    private socketTouuid: Map<string, string> = new Map();
+    socketTouuid: Map<string, string> = new Map();
 
     //<룸 아이디, 플레이어 uuid[] > 룸 아이디로 플레이어 세트 조회
-    private roomidToPlayerSet: Map<number, Set<string>> = new Map();
+    roomidToPlayerSet: Map<number, Set<string>> = new Map();
 
     // 룸 아이디, 캐치마인드 세션
     private catchGameRoom: Map<number, Catch> = new Map();
@@ -151,10 +139,9 @@ export class SessionGateway
     }
 
     @SubscribeMessage('leave_game')
-    leaveGame(client: Socket,) {
+    leaveGame(client: Socket) {
         const uuId = this.socketTouuid.get(client.id);
         this.custumDisconnect(uuId);
-
     }
 
     custumDisconnect(uuId: string) {
@@ -186,11 +173,11 @@ export class SessionGateway
             Logger.log('게임 참가자 나감: ' + uuId);
             Logger.log(
                 '게임 참가자: ' +
-                enstity.nickname +
-                ' 룸 번호: ' +
-                enstity.roomId +
-                ' 총 참가 인원: ' +
-                catchGame.current_user_num,
+                    enstity.nickname +
+                    ' 룸 번호: ' +
+                    enstity.roomId +
+                    ' 총 참가 인원: ' +
+                    catchGame.current_user_num,
             );
 
             host.emit('player_list_remove', {
@@ -205,7 +192,6 @@ export class SessionGateway
             client.disconnect();
         }
         this.dellConnectionInfo(uuId);
-
     }
 
     //호스트 접속, 방생성
@@ -288,9 +274,9 @@ export class SessionGateway
 
         Logger.log(
             'start_catch_game:' +
-            room_id +
-            ' ' +
-            this.roomIdToHostId.get(Number(room_id)),
+                room_id +
+                ' ' +
+                this.roomIdToHostId.get(Number(room_id)),
         );
         Logger.log(typeof room_id);
         const room = this.catchGameRoom.get(Number(room_id));
@@ -321,7 +307,6 @@ export class SessionGateway
             );
             return;
         }
-
 
         const room = this.catchGameRoom.get(Number(room_id));
         const uuId = this.socketTouuid.get(client.id);
@@ -371,13 +356,13 @@ export class SessionGateway
 
         Logger.log(
             '게임 참가자: ' +
-            nickname +
-            ' 룸 번호: ' +
-            room_id +
-            ' 총 참가 인원: ' +
-            room.user_num +
-            ' 현재 참가 인원: ' +
-            room.current_user_num,
+                nickname +
+                ' 룸 번호: ' +
+                room_id +
+                ' 총 참가 인원: ' +
+                room.user_num +
+                ' 현재 참가 인원: ' +
+                room.current_user_num,
         );
         const hostuuid = this.roomIdToHostId.get(Number(room_id));
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
@@ -424,13 +409,11 @@ export class SessionGateway
                 answer: room.correctAnswer,
                 nickname: clientEntity.nickname,
             });
-            this.server
-                .to(clientEntity.roomId.toString())
-                .emit('correct', {
-                    result: true,
-                    answer: room.correctAnswer,
-                    nickname: clientEntity.nickname,
-                });
+            this.server.to(clientEntity.roomId.toString()).emit('correct', {
+                result: true,
+                answer: room.correctAnswer,
+                nickname: clientEntity.nickname,
+            });
         } else {
             Logger.log('틀림: ' + ans);
             host.emit('incorrect', {
@@ -441,26 +424,26 @@ export class SessionGateway
         }
     }
 
-
     private destroyCatchGame(room_id: number) {
-
         const hostuuid = this.roomIdToHostId.get(room_id);
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
 
         //게임 종료
         this.server
             .to(room_id.toString())
-            .emit('end', { result: true, answer: this.catchGameRoom.get(room_id).correctAnswer });
+            .emit('end', {
+                result: true,
+                answer: this.catchGameRoom.get(room_id).correctAnswer,
+            });
 
         for (let uuId of this.roomidToPlayerSet.get(room_id)) {
             Logger.log('게임 종료: ' + uuId);
-            this.custumDisconnect(uuId);  //캐치 게임 종료시 플레이어 접속 종료
+            this.custumDisconnect(uuId); //캐치 게임 종료시 플레이어 접속 종료
         }
 
         this.catchGameRoom.delete(room_id);
         this.roomIdToHostId.delete(room_id);
     }
-
 
     //캐치 마인드 게임 종료
     // @UseGuards(SessionGuard)
@@ -469,10 +452,7 @@ export class SessionGateway
         const { room_id } = payload;
 
         // 방이 존재하는 경우 제거
-        if (
-            room_id === undefined ||
-            !this.catchGameRoom.has(Number(room_id))
-        ) {
+        if (room_id === undefined || !this.catchGameRoom.has(Number(room_id))) {
             client.emit('end', {
                 result: false,
                 message: '방이 존재하지 않습니다.',
@@ -485,7 +465,6 @@ export class SessionGateway
 
         // const room = this.catchGameRoom.get(Number(room_id));
         // room.current_user_num = 0;
-
 
         // if (room) {
         //     room.status = 2;
@@ -502,10 +481,8 @@ export class SessionGateway
 
         // }
 
-
         // this.catchGameRoom.delete(Number(room_id));
         // this.roomIdToHostId.delete(Number(room_id));
-
 
         const uuId = this.socketTouuid.get(client.id);
         // 소켓 -> uuid 제거
@@ -554,8 +531,7 @@ export class SessionGateway
     dellConnectionInfo(uuId: string) {
         // const uuId = this.socketTouuid.get(client.id);
         const client = this.uuidToclientEntity.get(uuId).clientSocket;
-        if (client !== null)
-            this.socketTouuid.delete(client.id);
+        if (client !== null) this.socketTouuid.delete(client.id);
         this.uuidToclientEntity.delete(uuId);
         this.clientsLastActivity.delete(uuId);
     }
@@ -586,7 +562,7 @@ export class SessionGateway
         try {
             const { room_id } = canvasData;
             this.server.to(room_id.toString()).emit('draw', canvasData);
-        } catch (error) { }
+        } catch (error) {}
     }
 
     // @UseGuards(SessionGuard)
@@ -599,7 +575,7 @@ export class SessionGateway
             this.server
                 .to(room_id.toString())
                 .emit('clear_draw', { result: true });
-        } catch (error) { }
+        } catch (error) {}
     }
 
     onModuleInit() {

@@ -1,7 +1,9 @@
+import { Socket } from 'socket.io';
+
 export class ClientEntity {
     nickname: string;
     roomId: number;
     gameType: string;
     roles: string;
-    clientSocket = null;
+    clientSocket: Socket | null = null;
 }
