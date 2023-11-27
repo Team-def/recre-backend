@@ -11,8 +11,21 @@ import { CatchPlayer } from './entities/catch.player.entitiy';
 import { RedGreenGame } from './entities/redgreen.game.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Player, CatchGame, RedGreenGame ,Room, Host, RedGreenPlayer ,CatchPlayer,], 'sqlite')],
-  controllers: [SessionInfoController],
-  providers: [SessionInfoService],
+    imports: [
+        TypeOrmModule.forFeature(
+            [
+                Player,
+                CatchGame,
+                RedGreenGame,
+                Room,
+                Host,
+                RedGreenPlayer,
+                CatchPlayer,
+            ],
+            'sqlite',
+        ),
+    ],
+    controllers: [SessionInfoController],
+    providers: [SessionInfoService],
 })
 export class SessionInfoModule {}

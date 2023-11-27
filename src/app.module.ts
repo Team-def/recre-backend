@@ -30,8 +30,7 @@ import { CatchPlayer } from './session-info/entities/catch.player.entitiy';
             database: process.env.DB_DATABASE,
             synchronize: true,
             logging: true,
-        })
-        ,
+        }),
         // TypeOrmModule.forRoot({
         //     name: 'sqlite',
         //     type: 'mysql',
@@ -44,16 +43,25 @@ import { CatchPlayer } from './session-info/entities/catch.player.entitiy';
         //     synchronize: true, // 개발 중에만 사용하고, 프로덕션에서는 사용하지 않는 것이 좋습니다.
         //     logging: true,
         // }),
-        TypeOrmModule.forRoot({ // ----------------- 추가 start 
+        TypeOrmModule.forRoot({
+            // ----------------- 추가 start
             name: 'sqlite', // - DB 이름
-            type: 'sqlite', // - DB 종류 
-            database:':memory:', // - DB 파일 이름 
-            // database:'./recre.db', // - DB 파일 이름 
-            autoLoadEntities: true, // - 구동시 entity파일 자동 로드 
-            synchronize: true, // - 서비스 구동시 entity와 디비의 테이블 싱크 개발만 할것 
-            logging: true, // - orm 사용시 로그 남기기 
-            dropSchema: true, // - 구동시 해당 테이블 삭제 synchronize와 동시 사용 
-            entities: [Player, CatchGame, RedGreenGame ,Room, Host, RedGreenPlayer ,CatchPlayer,], // - entity 파일 위치
+            type: 'sqlite', // - DB 종류
+            database: ':memory:', // - DB 파일 이름
+            // database:'./recre.db', // - DB 파일 이름
+            autoLoadEntities: true, // - 구동시 entity파일 자동 로드
+            synchronize: true, // - 서비스 구동시 entity와 디비의 테이블 싱크 개발만 할것
+            logging: true, // - orm 사용시 로그 남기기
+            dropSchema: true, // - 구동시 해당 테이블 삭제 synchronize와 동시 사용
+            entities: [
+                Player,
+                CatchGame,
+                RedGreenGame,
+                Room,
+                Host,
+                RedGreenPlayer,
+                CatchPlayer,
+            ], // - entity 파일 위치
         }),
         UserModule,
         AuthModule,
@@ -61,7 +69,7 @@ import { CatchPlayer } from './session-info/entities/catch.player.entitiy';
         ClientModule,
         SessionInfoModule,
     ],
-    controllers: [AppController,],
+    controllers: [AppController],
     providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

@@ -442,12 +442,10 @@ export class SessionGateway
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
 
         //게임 종료
-        this.server
-            .to(room_id.toString())
-            .emit('end', {
-                result: true,
-                answer: this.catchGameRoom.get(room_id).correctAnswer,
-            });
+        this.server.to(room_id.toString()).emit('end', {
+            result: true,
+            answer: this.catchGameRoom.get(room_id).correctAnswer,
+        });
 
         for (let uuId of this.roomidToPlayerSet.get(room_id)) {
             Logger.log('게임 종료: ' + uuId);

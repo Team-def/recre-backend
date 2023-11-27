@@ -1,10 +1,19 @@
 import { on } from 'events';
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    ManyToOne,
+    OneToMany,
+    OneToOne,
+    PrimaryColumn,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Room } from './room.entity';
 
 @Entity('host')
 export class Host {
-
     @Column({ type: 'integer' })
     @PrimaryColumn()
     host_id: number;
@@ -13,8 +22,9 @@ export class Host {
     uuid: string;
 
     // 방과 일대 일 관계
-    @OneToOne(() => Room, (room) => room.host, { nullable: true, cascade: true })
+    @OneToOne(() => Room, (room) => room.host, {
+        nullable: true,
+        cascade: true,
+    })
     room: Promise<Room>;
-
-
 }

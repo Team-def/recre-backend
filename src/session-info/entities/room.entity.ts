@@ -1,4 +1,16 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, OneToMany, OneToOne, PrimaryColumn, PrimaryGeneratedColumn, TableInheritance, Unique } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    OneToMany,
+    OneToOne,
+    PrimaryColumn,
+    PrimaryGeneratedColumn,
+    TableInheritance,
+    Unique,
+} from 'typeorm';
 import { Player } from './player.entity';
 import { Host } from './host.entity';
 import { promises } from 'dns';
@@ -9,7 +21,10 @@ export class Room {
     @PrimaryColumn()
     room_id: number;
 
-    @OneToOne(() => Host, (host) => host.room, { nullable: false, onDelete: 'CASCADE'})
+    @OneToOne(() => Host, (host) => host.room, {
+        nullable: false,
+        onDelete: 'CASCADE',
+    })
     @JoinColumn()
     host: Host;
 
@@ -23,7 +38,6 @@ export class Room {
     current_user_num: number;
 
     // 플레이어와 일대 다 관계
-    @OneToMany(() => Player, (player) => player.room, { cascade: true})
+    @OneToMany(() => Player, (player) => player.room, { cascade: true })
     players: Promise<Player[]>;
-
 }
