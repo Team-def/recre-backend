@@ -12,18 +12,7 @@ import { RedGreenGame } from './entities/redgreen.game.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature(
-            [
-                Player,
-                CatchGame,
-                RedGreenGame,
-                Room,
-                Host,
-                RedGreenPlayer,
-                CatchPlayer,
-            ],
-            'sqlite',
-        ),
+        TypeOrmModule.forFeature([Player, CatchGame, RedGreenGame, Room, Host, RedGreenPlayer, CatchPlayer], 'sqlite'),
     ],
     controllers: [SessionInfoController],
     providers: [SessionInfoService],

@@ -63,10 +63,7 @@ export class SessionInfoService {
     }
 
     // 무궁화 꽃이 방 생성
-    async redGreenGameRoomCreate(
-        redGreenGameRoom: RedGreenGame,
-        host_id: number,
-    ) {
+    async redGreenGameRoomCreate(redGreenGameRoom: RedGreenGame, host_id: number) {
         const host = await this.hostRepository.findOne({
             where: { host_id: host_id },
         });
