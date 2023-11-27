@@ -92,7 +92,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param payload
      */
     @SubscribeMessage('resume')
-    async stop(client: Socket, payload: any) {
+    async resume(client: Socket, payload: any) {
         throw new Error('Method not implemented.');
     }
 
