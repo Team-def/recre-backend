@@ -28,9 +28,9 @@ export class SessionGuard implements CanActivate {
             payload.hostInfo = hostInfo;
 
             client.hostInfo = hostInfo;
-            client.qrKey =
-                client.handshake.query.qrKey.toString() ??
-                '💀 TODO: 여기에 qrKey를 넣어야함';
+            // client.qrKey =
+            //     client.handshake.query.qrKey.toString() ??
+            //     '💀 TODO: 여기에 qrKey를 넣어야함';
             client.uuId = client.handshake.query.uuId.toString();
         } catch (e) {
             Logger.error(`💀 session guard 오류: ${e}`);

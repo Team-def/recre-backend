@@ -1,11 +1,6 @@
 import { Logger, UseGuards } from '@nestjs/common';
 
-import {
-    SubscribeMessage,
-    WebSocketServer,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
-} from '@nestjs/websockets';
+import { SubscribeMessage, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 
 import { Server, Socket } from 'socket.io';
 import { User } from 'src/user/entities/user.entity';
@@ -13,9 +8,7 @@ import { Catch } from './game/catch';
 import { ClientEntity } from './cliententity/client.entity';
 import { SessionGuard } from './session.guard';
 
-export class SessionGateway
-    implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect {
     constructor() {}
     @WebSocketServer()
     server: Server;

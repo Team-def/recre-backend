@@ -1,16 +1,13 @@
 import {
     OnGatewayConnection,
     OnGatewayDisconnect,
-    OnGatewayInit,
     SubscribeMessage,
     WebSocketGateway,
+    WebSocketServer,
 } from '@nestjs/websockets';
-import { SessionGateway } from '../session.gateway';
-import { Socket } from 'socket.io';
-import { User } from 'src/user/entities/user.entity';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
+import { UseGuards } from '@nestjs/common';
 import { RedGreenService } from './redgreen.service';
-import { RedGreenEntity } from './redgreen.entity';
 import { SessionGuard } from '../session.guard';
 import { SocketExtension } from '../socket.extension';
 
@@ -25,11 +22,19 @@ import { SocketExtension } from '../socket.extension';
     reconnectionAttempts: 3,
     reconnectionDelay: 1000,
 })
-export class RedGreenGateway extends SessionGateway {
-    private readonly redgreenRooms: Map<number, RedGreenEntity> = new Map();
+export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect {
+    @WebSocketServer()
+    server: Server;
 
-    constructor(private readonly redgreenService: RedGreenService) {
-        super();
+    private uuidToSocket = new Map<string, Socket>();
+
+    constructor(private readonly redgreenService: RedGreenService) {}
+
+    handleDisconnect(client: Socket) {
+        throw new Error('Method not implemented.');
+    }
+    handleConnection(client: Socket) {
+        throw new Error('Method not implemented.');
     }
 
     /**
@@ -40,7 +45,7 @@ export class RedGreenGateway extends SessionGateway {
      * @returns ack for host
      */
     @UseGuards(SessionGuard)
-    @SubscribeMessage('make_room_redgreen')
+    @SubscribeMessage('make_room')
     async makeRoomRedGreen(
         client: SocketExtension,
         payload: {
@@ -49,103 +54,65 @@ export class RedGreenGateway extends SessionGateway {
             goalDistance: number;
             winnerNum: number;
         },
-    ) {
-        const { game_type, user_num, goalDistance, winnerNum } = payload;
-        const clientEntity = this.uuidToclientEntity.get(client.uuId);
-        const hostInfo = client.hostInfo;
-        this.clientsLastActivity.set(client.uuId, { lastActivity: Date.now() });
+    ) {}
 
-        Logger.log({
-            host_name: hostInfo.nickname,
-            roomId: hostInfo.id,
-            game_type,
-            user_num,
-            goalDistance,
-            winnerNum,
-        });
-
-        // this.redgreenService.makeRoomHandler(); /// TODO: redgreen.service로 아래의 코드를 옮기기
-
-        if (this.roomIdToHostId.has(hostInfo.id)) {
-            /// TODO destroyRedGreenRoom
-        }
-
-        clientEntity.roomId = hostInfo.id;
-        clientEntity.gameType = game_type;
-        clientEntity.roles = 'host';
-
-        // 무궁화 세션 생성
-        const redgreenRoom = new RedGreenEntity(
-            hostInfo.id,
-            hostInfo.nickname,
-            goalDistance,
-            user_num,
-            0,
-            0,
-            winnerNum,
-        );
-        Logger.log(`redgreenRoom 방 생성 완료`);
-
-        // 무궁화 세션을 방 목록에 추가
-        this.redgreenRooms.set(hostInfo.id, redgreenRoom);
-        // 게임 진행중인 호스트 정보 등록
-        this.roomIdToHostId.set(hostInfo.id, client.uuId);
-        // 플레이어 리스트 세트 생성
-        this.roomidToPlayerSet.set(hostInfo.id, new Set<string>());
-
-        return {
-            result: true,
-            message: '방 생성 완료',
-        };
-    }
-
-    @SubscribeMessage('ready_redgreen')
+    @SubscribeMessage('ready')
     async ready(client: Socket, payload: any) {
-        // this.readyHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 
-    @SubscribeMessage('leave_readgreen')
+    @SubscribeMessage('leave')
     async leave(client: Socket, payload: any) {
-        // this.leaveHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 
-    @SubscribeMessage('start_redgreen')
-    async start(client: Socket, payload: any) {
-        // this.startHandler(client, payload);
+    @SubscribeMessage('start_game')
+    async startGame(client: Socket, payload: any) {
+        throw new Error('Method not implemented.');
     }
 
-    @SubscribeMessage('im_ready_redgreen')
+    @SubscribeMessage('im_ready')
     async imReady(client: Socket, payload: any) {
-        // this.imReadyHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 
     @SubscribeMessage('run')
     async run(client: Socket, payload: any) {
-        // this.runHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 
     @SubscribeMessage('stop')
     async stop(client: Socket, payload: any) {
-        // this.stopHandler(client, payload);
+        throw new Error('Method not implemented.');
+    }
+
+    /**
+     * 게임진행중 호스트가 마우스를 뗐을때 날아가는 요청
+     * @param client host
+     * @param payload
+     */
+    @SubscribeMessage('resume')
+    async stop(client: Socket, payload: any) {
+        throw new Error('Method not implemented.');
     }
 
     @SubscribeMessage('youdie')
     async youdie(client: Socket, payload: any) {
-        // this.youdieHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 
     @SubscribeMessage('touchdown')
     async touchdown(client: Socket, payload: any) {
-        // this.touchdownHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 
-    @SubscribeMessage('stop_redgreen')
-    async stopGame(client: Socket, payload: any) {
-        // this.stopGameHandler(client, payload);
-    }
-
-    @SubscribeMessage('end_redgreen')
+    /**
+     * host가 명시적으로 게임을 종료
+     * @param client host
+     * @param payload
+     */
+    @SubscribeMessage('end_game')
     async endGame(client: Socket, payload: any) {
-        // this.endGameHandler(client, payload);
+        throw new Error('Method not implemented.');
     }
 }
