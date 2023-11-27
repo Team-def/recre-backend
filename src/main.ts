@@ -9,6 +9,6 @@ async function bootstrap() {
     if (!process.env.LISTEN_PORT) {
         throw new Error('LISTEN_PORT is not defined');
     }
-    await app.listen(process.env.LISTEN_PORT);
+    await app.listen(+process.env.LISTEN_PORT);
 }
 bootstrap();
