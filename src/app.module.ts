@@ -7,7 +7,6 @@ import { User } from './user/entities/user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { SessionModule } from './session/session.module';
-import { ClientModule } from './client/client.module';
 import { SessionInfoModule } from './session-info/session-info.module';
 import { Player } from './session-info/entities/player.entity';
 import { Room } from './session-info/entities/room.entity';
@@ -66,7 +65,6 @@ import { CatchPlayer } from './session-info/entities/catch.player.entitiy';
         UserModule,
         AuthModule,
         SessionModule,
-        ClientModule,
         SessionInfoModule,
     ],
     controllers: [AppController],
