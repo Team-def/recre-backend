@@ -13,13 +13,6 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 @Module({
     imports: [TypeOrmModule.forFeature([User]), JwtModule.register({})],
     controllers: [AuthController],
-    providers: [
-        GoogleStrategy,
-        AuthService,
-        JwtAuthGuard,
-        UserService,
-        KakaoStrategy,
-        NaverStrategy,
-    ],
+    providers: [GoogleStrategy, AuthService, JwtAuthGuard, UserService, KakaoStrategy, NaverStrategy],
 })
 export class AuthModule {}

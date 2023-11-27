@@ -9,19 +9,10 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
             callbackURL: process.env.KAKAO_CALLBACK_URL,
         });
     }
-    async validate(
-        accessToken: string,
-        refreshToken: string,
-        profile: any,
-        done: any,
-    ) {
+    async validate(accessToken: string, refreshToken: string, profile: any, done: any) {
         const { id, provider } = profile;
         const { email } = profile._json.kakao_account;
-        const {
-            profile_image: profileImage,
-            thumbnail_image: thumbnailImage,
-            nickname,
-        } = profile._json.properties;
+        const { profile_image: profileImage, thumbnail_image: thumbnailImage, nickname } = profile._json.properties;
         const user = {
             id,
             nickname,

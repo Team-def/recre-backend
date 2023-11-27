@@ -49,10 +49,7 @@ export class UserService {
         if (!provider) {
             throw new NotFoundException(`provider not found`);
         }
-        Logger.log(
-            `findUser: ${JSON.stringify({ email, provider })}`,
-            'UserService',
-        );
+        Logger.log(`findUser: ${JSON.stringify({ email, provider })}`, 'UserService');
         return this.userRepository.findOne({ where: { email, provider } });
     }
 
