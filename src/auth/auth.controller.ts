@@ -1,16 +1,6 @@
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import {
-    Controller,
-    Get,
-    HttpStatus,
-    Post,
-    Req,
-    Res,
-    UseGuards,
-    HttpException,
-    Logger,
-} from '@nestjs/common';
+import { Controller, Get, HttpStatus, Post, Req, Res, UseGuards, HttpException, Logger } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Response } from 'express';
 
@@ -31,25 +21,14 @@ export class AuthController {
     //구글 로그인 완료
     @Get('google/redirect')
     @UseGuards(AuthGuard('google'))
-    async googleAuthRedirect(
-        @Req() req,
-        @Res({ passthrough: true }) response: Response,
-    ) {
+    async googleAuthRedirect(@Req() req, @Res({ passthrough: true }) response: Response) {
         req.user.provider = 'google';
         await this.authservice.googleLogin(req);
-        const { access_token, refresh_token } =
-            await this.authservice.getJwtTokens(
-                req.user.email,
-                req.user.provider,
-            );
+        const { access_token, refresh_token } = await this.authservice.getJwtTokens(req.user.email, req.user.provider);
 
         Logger.debug(`access_token: ${access_token}`, 'AuthController');
 
-        this.responseWithCookieAndRedirect(
-            response,
-            access_token,
-            refresh_token,
-        );
+        this.responseWithCookieAndRedirect(response, access_token, refresh_token);
     }
 
     /**
@@ -70,22 +49,11 @@ export class AuthController {
     @UseGuards(AuthGuard('kakao'))
     async kakaoAuthRedirect(@Req() req, @Res() response: Response) {
         req.user.provider = 'kakao';
-        Logger.debug(
-            `kakaoAuthRedirect: ${JSON.stringify(req.user)}`,
-            'AuthController',
-        );
+        Logger.debug(`kakaoAuthRedirect: ${JSON.stringify(req.user)}`, 'AuthController');
 
         await this.authservice.kakaoLogin(req);
-        const { access_token, refresh_token } =
-            await this.authservice.getJwtTokens(
-                req.user.email,
-                req.user.provider,
-            );
-        this.responseWithCookieAndRedirect(
-            response,
-            access_token,
-            refresh_token,
-        );
+        const { access_token, refresh_token } = await this.authservice.getJwtTokens(req.user.email, req.user.provider);
+        this.responseWithCookieAndRedirect(response, access_token, refresh_token);
     }
 
     /**
@@ -105,16 +73,8 @@ export class AuthController {
     async naverAuthRedirect(@Req() req, @Res() response: Response) {
         req.user.provider = 'naver';
         await this.authservice.naverLogin(req);
-        const { access_token, refresh_token } =
-            await this.authservice.getJwtTokens(
-                req.user.email,
-                req.user.provider,
-            );
-        this.responseWithCookieAndRedirect(
-            response,
-            access_token,
-            refresh_token,
-        );
+        const { access_token, refresh_token } = await this.authservice.getJwtTokens(req.user.email, req.user.provider);
+        this.responseWithCookieAndRedirect(response, access_token, refresh_token);
     }
 
     @Get('token')
@@ -125,18 +85,11 @@ export class AuthController {
 
     @Post('accesstoken')
     async refreshAccessToken(@Req() req, @Res() response: Response) {
-        const access_token =
-            await this.authservice.getJwtAccessTokenFromRefreshToken(
-                req.body.refresh_token,
-            );
+        const access_token = await this.authservice.getJwtAccessTokenFromRefreshToken(req.body.refresh_token);
         response.json({ access_token });
     }
 
-    private responseWithCookieAndRedirect(
-        response: Response,
-        access_token: string,
-        refresh_token: string,
-    ) {
+    private responseWithCookieAndRedirect(response: Response, access_token: string, refresh_token: string) {
         response
             .cookie('access_token', access_token, {
                 expires: new Date(Date.now() + 1000 * 60),
@@ -149,9 +102,6 @@ export class AuthController {
                 sameSite: 'lax',
                 // secure: true, /// TODO: https 적용시 주석 해제
             })
-            .redirect(
-                HttpStatus.PERMANENT_REDIRECT,
-                process.env.CLIENT_URL + '/token',
-            );
+            .redirect(HttpStatus.PERMANENT_REDIRECT, process.env.CLIENT_URL + '/token');
     }
 }

@@ -17,9 +17,6 @@ export class SessionGateway
     implements OnGatewayConnection, OnGatewayDisconnect
 {
     constructor() {}
-    implements OnGatewayConnection, OnGatewayDisconnect
-{
-    constructor() {}
     @WebSocketServer()
     server: Server;
 
@@ -27,8 +24,7 @@ export class SessionGateway
     private connectedSockets: Map<string, Socket> = new Map();
 
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
-    readonly clientsLastActivity: Map<string, { lastActivity: number }> =
-        new Map();
+    private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
 
     // < room_id, uuid >, 방 번호로 호스트 조회
     roomIdToHostId: Map<number, string> = new Map();
@@ -82,8 +78,7 @@ export class SessionGateway
             clientEntity.clientSocket = client;
 
             // 기존에 클라이언트가 속해 있었던 룸이 있다면 재연결
-            if (clientEntity.roomId !== -1)
-                client.join(clientEntity.roomId.toString());
+            if (clientEntity.roomId !== -1) client.join(clientEntity.roomId.toString());
             this.socketTouuid.set(client.id, uuId.toString());
         }
 
@@ -131,10 +126,7 @@ export class SessionGateway
                     return;
                 }
                 if (clientEntity.clientSocket !== null) {
-                    clientEntity.clientSocket.emit(
-                        'forceDisconnect',
-                        'Inactive for too long',
-                    ); //deprecated
+                    clientEntity.clientSocket.emit('forceDisconnect', 'Inactive for too long'); //deprecated
                 }
                 this.custumDisconnect(uuId);
             }
@@ -154,23 +146,15 @@ export class SessionGateway
         const client = this.uuidToclientEntity.get(uuId).clientSocket;
 
         if (this.uuidToclientEntity.get(uuId) === undefined) return;
-        if (
-            this.roomidToPlayerSet.has(this.uuidToclientEntity.get(uuId).roomId)
-        ) {
-            this.roomidToPlayerSet
-                .get(this.uuidToclientEntity.get(uuId).roomId)
-                .delete(uuId.toString());
+        if (this.roomidToPlayerSet.has(this.uuidToclientEntity.get(uuId).roomId)) {
+            this.roomidToPlayerSet.get(this.uuidToclientEntity.get(uuId).roomId).delete(uuId.toString());
         }
 
         //클라이언트
-        const catchGame = this.catchGameRoom.get(
-            this.uuidToclientEntity.get(uuId).roomId,
-        );
+        const catchGame = this.catchGameRoom.get(this.uuidToclientEntity.get(uuId).roomId);
         if (catchGame !== undefined && catchGame.status === 0) {
             catchGame.current_user_num--;
-            const hostuuid = this.roomIdToHostId.get(
-                this.uuidToclientEntity.get(uuId).roomId,
-            );
+            const hostuuid = this.roomIdToHostId.get(this.uuidToclientEntity.get(uuId).roomId);
             const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
             const enstity = this.uuidToclientEntity.get(uuId);
             Logger.log('게임 참가자 나감: ' + uuId);
@@ -233,14 +217,7 @@ export class SessionGateway
         clientEntity.gameType = game_type;
         clientEntity.roles = 'host';
         //캐치마인드 세션 생성
-        const catchGame = new Catch(
-            hostInfo.id,
-            hostInfo.nickname,
-            payload.user_num,
-            payload.answer,
-            0,
-            0,
-        );
+        const catchGame = new Catch(hostInfo.id, hostInfo.nickname, payload.user_num, payload.answer, 0, 0);
         console.log('방 생성 로그2: ', uuId);
 
         Logger.log({
@@ -275,39 +252,23 @@ export class SessionGateway
             lastActivity: Date.now(),
         });
 
-        Logger.log(
-            'start_catch_game:' +
-                room_id +
-                ' ' +
-                this.roomIdToHostId.get(Number(room_id)),
-        );
+        Logger.log('start_catch_game:' + room_id + ' ' + this.roomIdToHostId.get(Number(room_id)));
         Logger.log(typeof room_id);
         const room = this.catchGameRoom.get(Number(room_id));
         //게임 시작 상태로 변경
         room.status = 1;
-        this.server
-            .to(room_id.toString())
-            .emit('start_catch_game', { result: true });
+        this.server.to(room_id.toString()).emit('start_catch_game', { result: true });
         client.emit('start_catch_game', { result: true });
         // return { result: true };
     }
 
     //유저 ready
     @SubscribeMessage('ready')
-    async ready(
-        client: Socket,
-        payload: { room_id: string; nickname: string },
-    ) {
+    async ready(client: Socket, payload: { room_id: string; nickname: string }) {
         const { room_id, nickname } = payload;
-        if (
-            room_id === undefined ||
-            nickname === undefined ||
-            !this.catchGameRoom.has(Number(room_id))
-        ) {
+        if (room_id === undefined || nickname === undefined || !this.catchGameRoom.has(Number(room_id))) {
             console.log(room_id);
-            Logger.warn(
-                `room_id: ${client.id} ready: invalid room_id or nickname`,
-            );
+            Logger.warn(`room_id: ${client.id} ready: invalid room_id or nickname`);
             return;
         }
 
@@ -377,10 +338,7 @@ export class SessionGateway
 
     //정답 제출
     @SubscribeMessage('throw_catch_answer')
-    async throwCatchAnswer(
-        client: Socket,
-        payload: { room_id: string; ans: string },
-    ) {
+    async throwCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
         const { ans } = payload;
         const uuId = this.socketTouuid.get(client.id);
         const clientEntity = this.uuidToclientEntity.get(uuId);
@@ -388,11 +346,7 @@ export class SessionGateway
             lastActivity: Date.now(),
         });
 
-        if (
-            clientEntity.roomId === 0 ||
-            ans === undefined ||
-            !this.catchGameRoom.has(clientEntity.roomId)
-        ) {
+        if (clientEntity.roomId === 0 || ans === undefined || !this.catchGameRoom.has(clientEntity.roomId)) {
             return;
         }
         const room = this.catchGameRoom.get(clientEntity.roomId);
@@ -425,18 +379,14 @@ export class SessionGateway
                 nickname: clientEntity.nickname,
             });
             client.emit('incorrect', {
-                    message: '땡!',
+                message: '땡!',
             });
-
         }
     }
 
     //감정 표현
     @SubscribeMessage('express_emotion')
-    async expressEmotion(
-        client: Socket,
-        payload: { room_id: string; emotion: string },
-    ) {
+    async expressEmotion(client: Socket, payload: { room_id: string; emotion: string }) {
         const { emotion } = payload;
         const uuId = this.socketTouuid.get(client.id);
         const clientEntity = this.uuidToclientEntity.get(uuId);
@@ -444,11 +394,7 @@ export class SessionGateway
             lastActivity: Date.now(),
         });
 
-        if (
-            clientEntity.roomId === 0 ||
-            emotion === undefined ||
-            !this.catchGameRoom.has(clientEntity.roomId)
-        ) {
+        if (clientEntity.roomId === 0 || emotion === undefined || !this.catchGameRoom.has(clientEntity.roomId)) {
             return;
         }
         const room = this.catchGameRoom.get(clientEntity.roomId);
@@ -523,9 +469,7 @@ export class SessionGateway
 
         const uuId = this.socketTouuid.get(client.id);
         // 소켓 -> uuid 제거
-        this.socketTouuid.delete(
-            this.uuidToclientEntity.get(uuId).clientSocket.id,
-        );
+        this.socketTouuid.delete(this.uuidToclientEntity.get(uuId).clientSocket.id);
         // 클라이언트 엔티티 제거 (위아래 순서 중요)
         this.uuidToclientEntity.delete(uuId);
         this.clientsLastActivity.delete(uuId);
@@ -536,10 +480,7 @@ export class SessionGateway
     //캐치 마인드 정답 설정 (호스트만 가능)
     @UseGuards(SessionGuard)
     @SubscribeMessage('set_catch_answer')
-    async setCatchAnswer(
-        client: Socket,
-        payload: { room_id: string; ans: string },
-    ) {
+    async setCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
         const hostuuId = this.roomIdToHostId.get(Number(payload.room_id));
         if (hostuuId === undefined) {
             client.emit('set_catch_answer', {
@@ -565,7 +506,7 @@ export class SessionGateway
                 type: 'already_started',
                 message: '게임이 이미 시작되었습니다.',
             });
-            console.log('정답:', room.correctAnswer)
+            console.log('정답:', room.correctAnswer);
             return;
         }
 
@@ -619,9 +560,7 @@ export class SessionGateway
         // Logger.log('draw: 지우기');
         try {
             const { room_id } = payload;
-            this.server
-                .to(room_id.toString())
-                .emit('clear_draw', { result: true });
+            this.server.to(room_id.toString()).emit('clear_draw', { result: true });
         } catch (error) {}
     }
 

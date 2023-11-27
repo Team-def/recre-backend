@@ -1,11 +1,4 @@
-import {
-    Injectable,
-    ExecutionContext,
-    UnauthorizedException,
-    HttpException,
-    HttpStatus,
-    Logger,
-} from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtService } from '@nestjs/jwt';
 import { normalizeToken } from './normalize-token';
@@ -40,10 +33,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
             payload = this.jwtService.verify(token, {
                 secret: secretKey,
             });
-            Logger.debug(
-                `verify 성공! ${JSON.stringify(payload)}`,
-                'JwtAuthGuard',
-            );
+            Logger.debug(`verify 성공! ${JSON.stringify(payload)}`, 'JwtAuthGuard');
             return payload;
         } catch (e) {
             Logger.error(`verify 실패! ${JSON.stringify(e)}`, 'JwtAuthGuard');

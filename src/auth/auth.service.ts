@@ -1,9 +1,4 @@
-import {
-    BadRequestException,
-    Injectable,
-    HttpException,
-    Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, HttpException, Logger } from '@nestjs/common';
 import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
@@ -18,10 +13,7 @@ export class AuthService {
     ) {}
 
     async googleLogin(req) {
-        const user = await this.userService.findUser(
-            req.user.email,
-            req.user.provider,
-        );
+        const user = await this.userService.findUser(req.user.email, req.user.provider);
         Logger.debug(JSON.stringify(user), 'AuthService');
         // Logger.debug(JSON.stringify(req.user), 'AuthService');
         if (user === null) {
@@ -91,10 +83,7 @@ export class AuthService {
         };
     }
 
-    async getJwtTokens(
-        email: string,
-        provider: string,
-    ): Promise<{ access_token: string; refresh_token: string }> {
+    async getJwtTokens(email: string, provider: string): Promise<{ access_token: string; refresh_token: string }> {
         const userInfo = await this.userService.findUser(email, provider);
         Logger.debug(JSON.stringify(userInfo), 'getJwtTokens');
         const access_token = 'Bearer ' + this.getJwtAccessToken(userInfo);
@@ -127,10 +116,7 @@ export class AuthService {
             verify = this.jwtService.verify(refreshToken, {
                 secret: process.env.JWT_REFRESH_TOKEN_SECRET,
             });
-            Logger.debug(
-                `verify: ${JSON.stringify(verify)}`,
-                'getJwtAccessTokenFromRefreshToken',
-            );
+            Logger.debug(`verify: ${JSON.stringify(verify)}`, 'getJwtAccessTokenFromRefreshToken');
         } catch (e) {
             switch (e.message) {
                 // 토큰에 대한 오류를 판단합니다.
@@ -145,18 +131,12 @@ export class AuthService {
                 }
 
                 default: {
-                    Logger.error(
-                        `UNDEFINED_ERROR`,
-                        `getJwtAccessTokenFromRefreshToken`,
-                    );
+                    Logger.error(`UNDEFINED_ERROR`, `getJwtAccessTokenFromRefreshToken`);
                     throw new HttpException('서버 오류입니다.', 500);
                 }
             }
         }
-        const userInfo = await this.userService.findUser(
-            verify['email'],
-            verify['provider'],
-        );
+        const userInfo = await this.userService.findUser(verify['email'], verify['provider']);
         const payload = { email: userInfo.email, provider: userInfo.provider };
 
         const access_token = this.getJwtAccessToken(payload);

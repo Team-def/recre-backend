@@ -1,9 +1,4 @@
-import {
-    CanActivate,
-    ExecutionContext,
-    Injectable,
-    Logger,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from 'src/auth/auth.service';
 import { normalizeToken } from 'src/auth/normalize-token';
@@ -29,10 +24,7 @@ export class SessionGuard implements CanActivate {
             tokenPayload = this.jwtService.verify(accessToken, {
                 secret: process.env.JWT_ACCESS_TOKEN_SECRET,
             });
-            const hostInfo = await this.userservice.findUser(
-                tokenPayload.email,
-                tokenPayload.provider,
-            );
+            const hostInfo = await this.userservice.findUser(tokenPayload.email, tokenPayload.provider);
             payload.hostInfo = hostInfo;
 
             client.hostInfo = hostInfo;
