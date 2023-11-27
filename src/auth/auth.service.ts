@@ -106,7 +106,7 @@ export class AuthService {
         const payload = { email: userInfo.email, provider: userInfo.provider };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_ACCESS_TOKEN_SECRET,
-            expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME,
+            expiresIn: +process.env.JWT_ACCESS_TOKEN_EXPIRATION_TIME,
         });
         return token;
     }
@@ -115,7 +115,7 @@ export class AuthService {
         const payload = { email: userInfo.email, provider: userInfo.provider };
         const token = this.jwtService.sign(payload, {
             secret: process.env.JWT_REFRESH_TOKEN_SECRET,
-            expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME,
+            expiresIn: +process.env.JWT_REFRESH_TOKEN_EXPIRATION_TIME,
         });
         return token;
     }

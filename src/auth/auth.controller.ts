@@ -132,26 +132,26 @@ export class AuthController {
         response.json({ access_token });
     }
 
-  private responseWithCookieAndRedirect(
-    response: Response,
-    access_token: string,
-    refresh_token: string,
-  ) {
-    response
-      .cookie('access_token', access_token, {
-        expires: new Date(Date.now() + 1000 * 60),
-        domain: process.env.DOMAIN,
-        sameSite: 'lax',
-        // secure: true, /// TODO: https 적용시 주석 해제
-      })
-      .cookie('refresh_token', refresh_token, {
-        domain: process.env.DOMAIN,
-        sameSite: 'lax',
-        // secure: true, /// TODO: https 적용시 주석 해제
-      })
-      .redirect(
-        HttpStatus.PERMANENT_REDIRECT,
-        process.env.CLIENT_URL + '/token',
-      );
-  }
+    private responseWithCookieAndRedirect(
+        response: Response,
+        access_token: string,
+        refresh_token: string,
+    ) {
+        response
+            .cookie('access_token', access_token, {
+                expires: new Date(Date.now() + 1000 * 60),
+                domain: process.env.DOMAIN,
+                sameSite: 'lax',
+                // secure: true, /// TODO: https 적용시 주석 해제
+            })
+            .cookie('refresh_token', refresh_token, {
+                domain: process.env.DOMAIN,
+                sameSite: 'lax',
+                // secure: true, /// TODO: https 적용시 주석 해제
+            })
+            .redirect(
+                HttpStatus.PERMANENT_REDIRECT,
+                process.env.CLIENT_URL + '/token',
+            );
+    }
 }
