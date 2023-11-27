@@ -36,3 +36,6 @@ lerna-debug.log*
 
 #환경변수
 .env
+
+#데이터 베이스 파일
+.db
