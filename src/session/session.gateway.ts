@@ -467,9 +467,7 @@ export class SessionGateway
         }
         const room = this.catchGameRoom.get(clientEntity.roomId);
         Logger.log('게임 상태' + room.status);
-        if (room.status !== 1) {
-            return;
-        }
+
         const hostuuid = this.roomIdToHostId.get(clientEntity.roomId);
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
         Logger.log('감정 표현: ' + emotion);
