@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { SessionInfoService } from './session-info.service';
+import { Host } from './entities/host.entity';
+import { RedGreenGame } from './entities/redgreen.game.entity';
 
 @Controller('session-info')
 export class SessionInfoController {
@@ -8,13 +10,16 @@ export class SessionInfoController {
     @Post('/make-host')
     create(@Req() req) {
         console.log(req.body);
-        return this.sessionInfoService.hostCreate(req.body);
+        const host = new Host();
+        host.uuid = req.body.uuid;
+        return this.sessionInfoService.hostSave(req.body);
         // return this.sessionInfoService.create(createSessionInfoDto);
     }
 
     @Post('/make-catchroom')
     create2(@Req() req) {
         console.log(req.body);
+        const redGreenGame = new RedGreenGame();
         return this.sessionInfoService.RedGreenCreate();
 
         // return this.sessionInfoService.catchcreate();

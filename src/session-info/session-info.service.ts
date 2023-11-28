@@ -30,8 +30,8 @@ export class SessionInfoService {
     ) {}
 
     // 호스트 생성
-    hostCreate(host: Host) {
-        return this.hostRepository.save(host);
+    async hostSave(host: Host) {
+        return await this.hostRepository.save(host);
     }
 
     // 호스트 제거
@@ -39,6 +39,12 @@ export class SessionInfoService {
         const host = await this.hostRepository.findOne({ where: { uuid } });
         await this.hostRepository.remove(host);
         return true;
+    }
+
+    // 호스트 조회
+    async hostFind(uuid: string) {
+        const host: Host = await this.hostRepository.findOne({ where: { uuid } });
+        return host;
     }
 
     // 캐치 마인드 방 생성
@@ -62,15 +68,20 @@ export class SessionInfoService {
         return true;
     }
 
+
     // 무궁화 꽃이 방 생성
-    async redGreenGameRoomCreate(redGreenGameRoom: RedGreenGame, host_id: number) {
-        const host = await this.hostRepository.findOne({
-            where: { host_id: host_id },
-        });
-        host.room = Promise.resolve(redGreenGameRoom);
-        await this.hostRepository.save(host);
+    async redGreenGameRoomSave(redGreenGameRoom: RedGreenGame) {
+        await this.redGreenGameRepository.save(redGreenGameRoom);
         // console.log(catchroom.id);
         return redGreenGameRoom;
+    }
+
+    // 무궁화 방 조회
+    async redGreenGameFindByRoomId(room_id: number) {
+        const room = await this.redGreenGameRepository.findOne({
+            where: { room_id },
+        });
+        return room;
     }
 
     // 캐치마인드 플레이어 생성
@@ -95,13 +106,8 @@ export class SessionInfoService {
     }
 
     // 무궁화 꽃이 플레이어 생성
-    async redGreenGamePlayerCreate(player: RedGreenPlayer, room_id: number) {
-        const room = await this.redGreenGameRepository.findOne({
-            where: { room_id },
-        });
-        (await room.players).push(player);
-        await this.redGreenGameRepository.save(room); // Fix: Pass the room object to the save method
-
+    async redGreenGamePlayerSave(player: RedGreenPlayer) {
+        await this.redGreenPlayerRepository.save(player);
         return player;
     }
 
@@ -113,6 +119,14 @@ export class SessionInfoService {
         await this.redGreenPlayerRepository.remove(player);
 
         return true;
+    }
+
+    // 무궁화 꽃이 플레이어 조회
+    async redGreenGamePlayerFindByUuid(uuid: string) {
+        const player = await this.redGreenPlayerRepository.findOne({
+            where: { uuid },
+        });
+        return player;
     }
 
     async hostDelete(req: any) {
@@ -156,7 +170,7 @@ export class SessionInfoService {
         const player = new RedGreenPlayer();
         player.uuid = req.uuid;
         player.name = req.name;
-        player.socket_id = req.socket_id;
+        // player.socket_id = req.socket_id;
 
         console.log(req.room_id);
         const room = await this.redGreenGameRepository.findOne({
@@ -173,7 +187,7 @@ export class SessionInfoService {
 
     async RedGreenCreate() {
         let redGreenGame = new RedGreenGame();
-        redGreenGame.room_id = 2;
+        redGreenGame.room_id = 1;
         redGreenGame.current_user_num = 0;
         redGreenGame.user_num = 10;
         redGreenGame.status = 'wait';
