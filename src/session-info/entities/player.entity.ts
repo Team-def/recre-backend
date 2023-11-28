@@ -21,9 +21,9 @@ export class Player {
     @Column({ type: 'varchar', length: 30, nullable: false })
     name: string;
 
-    @Column({ type: 'varchar', length: 30, nullable: true })
-    @Index({ unique: true })
-    socket_id: string;
+    // @Column({ type: 'varchar', length: 30, nullable: true })
+    // @Index({ unique: true })
+    // socket_id: string;
 
     // 방과 다대 일 관계
     @ManyToOne(() => Room, (room) => room.players, {
