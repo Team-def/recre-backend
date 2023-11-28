@@ -156,7 +156,7 @@ export class SessionInfoService {
         const player = new RedGreenPlayer();
         player.uuid = req.uuid;
         player.name = req.name;
-        player.socket_id = req.socket_id;
+        // player.socket_id = req.socket_id;
 
         console.log(req.room_id);
         const room = await this.redGreenGameRepository.findOne({

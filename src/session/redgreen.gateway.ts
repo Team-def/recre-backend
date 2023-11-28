@@ -11,6 +11,12 @@ import { RedGreenService } from './redgreen.service';
 import { SessionGuard } from './session.guard';
 import { SocketExtension } from './socket.extension';
 import { SessionInfoService } from 'src/session-info/session-info.service';
+import { RedGreenGame } from 'src/session-info/entities/redgreen.game.entity';
+
+import { Host } from 'src/session-info/entities/host.entity';
+import { RedGreenPlayer } from 'src/session-info/entities/redgreen.player.entity';
+import { Player } from 'src/session-info/entities/player.entity';
+import { Room } from 'src/session-info/entities/room.entity';
 
 @WebSocketGateway({
     namespace: 'redgreen',
@@ -33,13 +39,43 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     constructor(
         private readonly redgreenService: RedGreenService,
         private readonly sessionInfoService: SessionInfoService,
-    ) {}
+    ) {
+        const host = new Host();
+        host.uuid = '123';
+        host.host_id = 1;
 
-    handleDisconnect(client: Socket) {
-        throw new Error('Method not implemented.');
+        this.sessionInfoService.hostCreate(host);
+        Logger.log('호스트 생성: ' + host.uuid);
+
+        const redgreengame = new RedGreenGame();
+        redgreengame.room_id = 1;
+        redgreengame.status = 'playing';
+        redgreengame.user_num = 0;
+        redgreengame.current_user_num = 0;
+        redgreengame.killer_mode = false;
+        redgreengame.length = 100;
+        redgreengame.win_num = 1;
+        redgreengame.host = host;
+        this.sessionInfoService.redGreenGameRoomCreate(redgreengame, 1);
+
+        const redgreenplayer = new RedGreenPlayer();
+        redgreenplayer.uuid = '12345';
+        redgreenplayer.name = '영희';
+        redgreenplayer.state = 'ALIVE';
+        redgreenplayer.distance = 0;
+        redgreenplayer.endtime = new Date();
+        redgreenplayer.room = redgreengame;
+        this.sessionInfoService.redGreenGamePlayerCreate(redgreenplayer, 1);
+
     }
+
+    handleDisconnect(client: Socket) {}
+
     handleConnection(client: Socket) {
-        throw new Error('Method not implemented.');
+        const uuid = client.handshake.query.uuId.toString();
+        this.uuidToSocket.set(uuid, client);
+        this.socketTouuid.set(client.id, uuid);
+        Logger.log('새로운 유저 접속: ' + uuid);
     }
 
     /**
@@ -114,7 +150,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload
      */
-    @UseGuards(SessionGuard)
+    // @UseGuards(SessionGuard)
     @SubscribeMessage('stop')
     async stop(client: Socket, payload: { cur_time: Date }) {
         const { cur_time } = payload;
@@ -132,7 +168,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload
      */
-    @UseGuards(SessionGuard)
+    // @UseGuards(SessionGuard)
     @SubscribeMessage('resume')
     async resume(client: Socket, payload: { cur_time: Date }) {
         const { cur_time } = payload;
@@ -145,7 +181,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         client.emit('resume', { result: true });
     }
 
-    @SubscribeMessage('youdie')
+    // @SubscribeMessage('youdie')
     async youdie(uuid: string) {
         const clientsocket = this.uuidToSocket.get(uuid);
         const player = await this.sessionInfoService.findRedGreenPlayer(uuid);
@@ -169,7 +205,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     }
 
-    @SubscribeMessage('touchdown')
+    // @SubscribeMessage('touchdown')
     async touchdown(uuid: string) {
         const clientsocket = this.uuidToSocket.get(uuid);
         const player = await this.sessionInfoService.findRedGreenPlayer(uuid);
