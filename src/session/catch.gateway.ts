@@ -1,5 +1,5 @@
 import { WebSocketGateway } from '@nestjs/websockets';
-import { SessionGateway } from '../session.gateway';
+import { SessionGateway } from './session.gateway';
 
 @WebSocketGateway({
     // namespace: 'catch', /// TODO - namespace는 나중에 정의할 것

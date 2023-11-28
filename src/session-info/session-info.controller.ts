@@ -57,6 +57,10 @@ export class SessionInfoController {
         return this.sessionInfoService.getRedGreenPlayers();
     }
 
+
+
+
+
     // @Get()
     // findAll() {
     //   return this.sessionInfoService.findAll();
