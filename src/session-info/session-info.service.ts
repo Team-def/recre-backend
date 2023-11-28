@@ -246,4 +246,39 @@ export class SessionInfoService {
     remove(id: number) {
         return `This action removes a #${id} sessionInfo`;
     }
+
+    /* after Game */
+    // find RedGreenPlayer by uuid
+    async findRedGreenPlayer(uuid: string) {
+        return this.redGreenPlayerRepository.findOne({ where: { uuid } });
+    }
+
+    // find RedGreenGame by room_id
+    async findRedGreenGame(room_id: number) {
+        return this.redGreenGameRepository.findOne({ where: { room_id } });
+    }
+
+    // save player's real-time information
+    async savePlayer(player: RedGreenPlayer) {
+        return this.redGreenPlayerRepository.save(player);
+    }
+
+    async findHost(uuid: string) {
+        return this.hostRepository.findOne({ where: { uuid } });
+    }
+
+    // 무궁화 꽃이 방 제거
+    async redGreenGameRoomDelete(room_id: number) {
+        const room = await this.redGreenGameRepository.findOne({
+            where: { room_id },
+        });
+        await this.redGreenGameRepository.remove(room);
+
+        return true;
+    }
+
+    // save game's real-time information
+    async saveGame(game: RedGreenGame) {
+        return this.redGreenGameRepository.save(game);
+    }
 }
