@@ -87,6 +87,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const uuid = this.socketTouuid.get(client.id);
         const player = await this.sessionInfoService.findRedGreenPlayer(uuid);
         const game = await this.sessionInfoService.findRedGreenGame(player.room.room_id);
+        const host = this.uuidToSocket.get(game.host.uuid);
 
         /**
          * @todo game.status === 'playing' 인지 확인
@@ -98,7 +99,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         } else {
             player.distance += shakeCount;
             await this.sessionInfoService.savePlayer(player);
-            // this.server.to(room.room_id.toString()).emit('run', { uuid, shakeCount });
+            host.emit('run', { uuid, shakeCount });
         }
 
         if (player.distance >= game.length) {
@@ -148,6 +149,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async youdie(uuid: string) {
         const clientsocket = this.uuidToSocket.get(uuid);
         const player = await this.sessionInfoService.findRedGreenPlayer(uuid);
+        const host = this.uuidToSocket.get(player.room.host.uuid);
+
         player.state = 'DEAD';
         player.endtime = new Date();
         await this.sessionInfoService.savePlayer(player);
@@ -157,16 +160,30 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             distance: player.distance,
             endtime: player.endtime,
         });
+        host.emit('youdie', {
+            result: true,
+            name: player.name,
+            distance: player.distance,
+            endtime: player.endtime,
+        });
+
     }
 
     @SubscribeMessage('touchdown')
     async touchdown(uuid: string) {
         const clientsocket = this.uuidToSocket.get(uuid);
         const player = await this.sessionInfoService.findRedGreenPlayer(uuid);
+        const host = this.uuidToSocket.get(player.room.host.uuid);
+
         player.state = 'FINISH';
         player.endtime = new Date();
         await this.sessionInfoService.savePlayer(player);
         clientsocket.emit('touchdown', {
+            result: true,
+            name: player.name,
+            endtime: player.endtime,
+        });
+        host.emit('touchdown', {
             result: true,
             name: player.name,
             endtime: player.endtime,
