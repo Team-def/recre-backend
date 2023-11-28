@@ -16,5 +16,6 @@ import { RedGreenGame } from './entities/redgreen.game.entity';
     ],
     controllers: [SessionInfoController],
     providers: [SessionInfoService],
+    exports: [SessionInfoService],
 })
 export class SessionInfoModule {}
