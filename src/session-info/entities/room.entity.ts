@@ -17,7 +17,7 @@ import { promises } from 'dns';
 
 @TableInheritance({ column: { type: 'varchar', name: 'game_type' } })
 @Entity('room')
-export class Room {
+export abstract class Room {
     @PrimaryColumn()
     room_id: number;
 
@@ -28,6 +28,7 @@ export class Room {
     @JoinColumn()
     host: Host;
 
+    // wait, playing, end
     @Column({ type: 'varchar', length: 30 })
     status: string;
 

@@ -15,4 +15,5 @@ export class RedGreenPlayer extends Player {
      */
     @Column({ type: 'datetime', nullable: true, default: 0 })
     endtime: Date;
+    gameRoom: any;
 }
