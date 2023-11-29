@@ -41,6 +41,11 @@ export class SessionInfoService {
         return true;
     }
 
+    async hostFindByRoomId(room_id: number) {
+        const host = await this.hostRepository.findOne({ where: { room: { room_id } } });
+        return host;
+    }
+
     // 호스트 조회
     async hostFind(uuid: string) {
         const host: Host = await this.hostRepository.findOne({ where: { uuid } });
@@ -117,24 +122,21 @@ export class SessionInfoService {
 
     // 무궁화 꽃이 플레이어 제거
     async redGreenGamePlayerRemove(uuid: string) {
-        const player = await this.redGreenPlayerRepository.findOne({
-            where: { uuid },
-        });
-        await this.redGreenPlayerRepository.remove(player);
+
+        await this.redGreenPlayerRepository.delete({ uuid });
 
         return true;
     }
 
     // 무궁화 꽃이 플레이어 조회
     async redGreenGamePlayerFindByUuid(uuid: string) {
-        const player = await this.redGreenPlayerRepository.findOne({
+        return this.redGreenPlayerRepository.findOne({
             where: { uuid },
         });
-        return player;
     }
 
     async getRedGreenGamesRelation(): Promise<RedGreenGame[]> {
-        return this.redGreenGameRepository.find({relations: ['players']});
+        return this.redGreenGameRepository.find({ relations: ['players'] });
     }
 
     // 무궁화 꽃이 플레이어 조회 rellation

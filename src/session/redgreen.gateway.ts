@@ -157,7 +157,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const { user_num, goalDistance, winnerNum } = payload;
 
         //이미 방이 존재하는 경우
-        Logger.log('방 있나? ' + JSON.stringify(await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())));
+        Logger.log(
+            '방 있나? ' +
+                JSON.stringify(await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())),
+        );
         if ((await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())) != null) {
             Logger.log('방을 재생성 합니다.');
             //게임 종료 로직
@@ -188,7 +191,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: number; nickname: string }) {
-        Logger.log('레드그린 클라이언트 payload: ' + JSON.stringify(payload, null, 4), "READY");
+        Logger.log('레드그린 클라이언트 payload: ' + JSON.stringify(payload, null, 4), 'READY');
         const { room_id, nickname } = payload;
         const room = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
         room.current_user_num += 1;
@@ -200,16 +203,33 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         await this.sessionInfoService.redGreenGamePlayerSave(player);
         await this.sessionInfoService.redGreenGameRoomSave(room);
 
-        client.emit("ready", {result: true, message: "🆗"});
+        client.emit('ready', { result: true, message: '🆗' });
+        const host = await this.sessionInfoService.hostFindByRoomId(room_id);
+        const host_socket = this.uuidToSocket.get(host.uuid);
+        host_socket.emit('player_list_add', {
+            player_cnt: room.current_user_num,
+            nickname: nickname,
+        });
     }
 
-    @SubscribeMessage('leave')
+    @SubscribeMessage('leave_game')
     async leave(client: Socket) {
         Logger.log('레드그린 클라이언트 leave: ' + client.handshake.query.uuId);
         const uuid = client.handshake.query.uuId.toString();
         const player = await this.sessionInfoService.redGreenGamePlayerFindByUuidRelation(uuid);
+        if (!player) {
+            return { result: false };
+        }
         const room = await player.room;
         room.current_user_num -= 1;
+
+        const host = await this.sessionInfoService.hostFindByRoomId(room.room_id);
+        const host_socket = this.uuidToSocket.get(host.uuid);
+        host_socket.emit('player_list_remove', {
+            player_cnt: room.current_user_num,
+            nickname: player.name,
+        });
+
         await this.sessionInfoService.redGreenGamePlayerRemove(uuid);
         this.playerDisconnect(uuid);
     }
@@ -273,8 +293,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const uuid = client.handshake.query.uuId.toString();
         const host = await this.sessionInfoService.hostFind(uuid);
         if (!host) {
-          Logger.debug("stop 메시지 날아옴");
-          return { result: false };
+            return { result: false };
         }
         const game = await this.sessionInfoService.findRedGreenGame((await host.room).room_id);
         game.killer_mode = true;
@@ -350,20 +369,19 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async syncGameRoomInfo() {
         const games = await this.sessionInfoService.getRedGreenGamesRelation();
         // console.log('syncGameRoomInfo: ' + games);
-        if(games.length === 0) return;
+        if (games.length === 0) return;
         for (const game of games) {
-            if(game.status !== 'playing') continue;
+            if (game.status !== 'playing') continue;
             const host = await game.host;
             const players = await game.players;
             const host_socket = this.uuidToSocket.get(host.uuid);
 
-            Logger.debug(JSON.stringify(players, null, 4));    // stringify with 4 spaces at each level)
+            Logger.debug(JSON.stringify(players, null, 4)); // stringify with 4 spaces at each level)
 
             if (host_socket === undefined) return;
             host_socket.emit('players_status', {
                 player_info: players,
             });
-
 
             // for (const player_socket of player_sockets) {
             //     player_socket.emit('sync_game_room_info', {
