@@ -12,7 +12,6 @@ import { SessionGuard } from './session.guard';
 import { SocketExtension } from './socket.extension';
 import { SessionInfoService } from 'src/session-info/session-info.service';
 import { RedGreenEntity } from './game/redgreen.entity';
-import { RedGreenEntity } from './game/redgreen.entity';
 import { RedGreenPlayer } from 'src/session-info/entities/redgreen.player.entity';
 import { CatchPlayer } from 'src/session-info/entities/catch.player.entitiy';
 import { CatchGame } from 'src/session-info/entities/catch.game.entity';
@@ -43,12 +42,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     private uuidToSocket = new Map<string, Socket>();
     private socketToUuid = new Map<Socket, string>();
 
-    // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
-    private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
-    ) {}
 
-    private uuidToSocket = new Map<string, Socket>();
-    private socketToUuid = new Map<Socket, string>();
 
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
     private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
@@ -340,74 +334,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
     }
 
-    // /**
-    //  * host가 명시적으로 게임을 종료
-    //  * @param client host
-    //  * @param payload
-    //  */
-    // @SubscribeMessage('end_game')
-    // async endGame(client: Socket, payload: any) {
-    //     const uuid = client.handshake.query.uuId.toString();
-    //     const host = await this.sessionInfoService.findHost(uuid);
-    //     const room = await host.room;
-    //     //게임 종료
-    //     this.server.to(room.room_id.toString()).emit('end_game', {
-    //         result: true,
-    //     });
-
-    //     this.sessionInfoService.getRedGreenPlayers().then(async (players) => {
-    //         for (const player of players) {
-    //             room.current_user_num--;
-    //             Logger.log('게임 참가자 나감: ' + player.uuid);
-    //             Logger.log(
-    //                 '게임 참가자: ' +
-    //                     player.name +
-    //                     ' 룸 번호: ' +
-    //                     room.room_id +
-    //                     ' 현재 인원: ' +
-    //                     room.current_user_num,
-    //             );
-    //             // disconnect player
-    //             const clientsocket = this.uuidToSocket.get(player.uuid);
-    //             clientsocket.emit('disconnect');
-    //         }
-    //     });
-    // }
-
-
-    // /**
-    //  * host가 명시적으로 게임을 종료
-    //  * @param client host
-    //  * @param payload
-    //  */
-    // @SubscribeMessage('end_game')
-    // async endGame(client: Socket, payload: any) {
-    //     const uuid = client.handshake.query.uuId.toString();
-    //     const host = await this.sessionInfoService.findHost(uuid);
-    //     const room = await host.room;
-    //     //게임 종료
-    //     this.server.to(room.room_id.toString()).emit('end_game', {
-    //         result: true,
-    //     });
-
-    //     this.sessionInfoService.getRedGreenPlayers().then(async (players) => {
-    //         for (const player of players) {
-    //             room.current_user_num--;
-    //             Logger.log('게임 참가자 나감: ' + player.uuid);
-    //             Logger.log(
-    //                 '게임 참가자: ' +
-    //                     player.name +
-    //                     ' 룸 번호: ' +
-    //                     room.room_id +
-    //                     ' 현재 인원: ' +
-    //                     room.current_user_num,
-    //             );
-    //             // disconnect player
-    //             const clientsocket = this.uuidToSocket.get(player.uuid);
-    //             clientsocket.emit('disconnect');
-    //         }
-    //     });
-    // }
 
     /**
      * host가 명시적으로 게임을 종료
@@ -420,17 +346,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.hostDisconnect(uuId);
     }
 
-    onModuleInit() {
-        // setInterval(() => {
-        //     this.syncGameRoomInfo();
-        // }, 3000);
-
-        setInterval(() => {
-            this.checkInactiveClients();
-        }, 4000);
-        const uuId = client.handshake.query.uuId.toString();
-        this.hostDisconnect(uuId);
-    }
 
     onModuleInit() {
         // setInterval(() => {
@@ -441,6 +356,40 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             this.checkInactiveClients();
         }, 4000);
     }
+
+
+
+        // /**
+    //  * host가 명시적으로 게임을 종료
+    //  * @param client host
+    //  * @param payload
+    //  */
+    // @SubscribeMessage('end_game')
+    // async endGame(client: Socket, payload: any) {
+    //     const uuid = client.handshake.query.uuId.toString();
+    //     const host = await this.sessionInfoService.findHost(uuid);
+    //     const room = await host.room;
+    //     //게임 종료
+    //     this.server.to(room.room_id.toString()).emit('end_game', {
+    //         result: true,
+    //     });
+
+    //     this.sessionInfoService.getRedGreenPlayers().then(async (players) => {
+    //         for (const player of players) {
+    //             room.current_user_num--;
+    //             Logger.log('게임 참가자 나감: ' + player.uuid);
+    //             Logger.log(
+    //                 '게임 참가자: ' +
+    //                     player.name +
+    //                     ' 룸 번호: ' +
+    //                     room.room_id +
+    //                     ' 현재 인원: ' +
+    //                     room.current_user_num,
+    //             );
+    //             // disconnect player
+    //             const clientsocket = this.uuidToSocket.get(player.uuid);
+    //             clientsocket.emit('disconnect');
+    //         }
+    //     });
+    // }
 }
-
-
