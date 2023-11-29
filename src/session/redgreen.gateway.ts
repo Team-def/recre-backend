@@ -157,7 +157,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const { user_num, goalDistance, winnerNum } = payload;
 
         //이미 방이 존재하는 경우
-        Logger.log('방 있나? ' + (await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())));
+        Logger.log('방 있나? ' + JSON.stringify(await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())));
         if ((await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())) != null) {
             Logger.log('방을 재생성 합니다.');
             //게임 종료 로직
@@ -188,7 +188,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: number; nickname: string }) {
-        Logger.log('레드그린 클라이언트 ready: ' + client.handshake.query.uuId);
+        Logger.log('레드그린 클라이언트 payload: ' + JSON.stringify(payload, null, 4), "READY");
         const { room_id, nickname } = payload;
         const room = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
         room.current_user_num += 1;
@@ -199,6 +199,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         client.join(room_id.toString());
         await this.sessionInfoService.redGreenGamePlayerSave(player);
         await this.sessionInfoService.redGreenGameRoomSave(room);
+
+        client.emit("ready", {result: true, message: "🆗"});
     }
 
     @SubscribeMessage('leave')
@@ -270,6 +272,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const { cur_time } = payload;
         const uuid = client.handshake.query.uuId.toString();
         const host = await this.sessionInfoService.hostFind(uuid);
+        if (!host) {
+          Logger.debug("stop 메시지 날아옴");
+          return { result: false };
+        }
         const game = await this.sessionInfoService.findRedGreenGame((await host.room).room_id);
         game.killer_mode = true;
         await this.sessionInfoService.saveGame(game);
