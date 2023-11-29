@@ -111,7 +111,9 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
             return;
         }
 
-        this.uuidToclientEntity.get(uuId).clientSocket = null;
+        if (this.uuidToclientEntity.get(uuId).clientSocket === client) {
+          this.uuidToclientEntity.get(uuId).clientSocket = null;
+        }
         this.socketTouuid.delete(client.id);
         this.connectedSockets.delete(client.id);
     }
@@ -175,7 +177,8 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
                     ' 총 참가 인원: ' +
                     catchGame.current_user_num,
             );
-
+            
+            Logger.log('host: ' + host, 'custumDisconnect');
             host.emit('player_list_remove', {
                 player_cnt: catchGame.current_user_num,
                 nickname: enstity.nickname,
@@ -218,7 +221,10 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
             user_num: user_num,
             answer: answer,
         });
-        if (this.roomIdToHostId.has(hostInfo.id)) {
+        const hostuuid = this.roomIdToHostId.get(hostInfo.id);
+        if (hostuuid) {
+            const hostentity = this.uuidToclientEntity.get(hostuuid);
+            hostentity.clientSocket = client;
             this.destroyCatchGame(Number(hostInfo.id));
         }
 
@@ -421,6 +427,8 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     private destroyCatchGame(room_id: number) {
         const hostuuid = this.roomIdToHostId.get(room_id);
         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
+
+        Logger.debug(room_id, `destroyCatchGame`);
 
         //게임 종료
         this.server.to(room_id.toString()).emit('end', {
