@@ -47,6 +47,11 @@ export class SessionInfoService {
         return host;
     }
 
+    async hostFindRelation(uuid: string) {
+        const host: Host = await this.hostRepository.findOne({ where: { uuid }, relations: ['room'] });
+        return host;
+    }
+
     // 캐치 마인드 방 생성
     async catchGameRoomCreate(catchGameRoom: CatchGame, host_id: number) {
         const host = await this.hostRepository.findOne({
@@ -67,7 +72,6 @@ export class SessionInfoService {
         await this.catchGameRepository.save(room);
         return true;
     }
-
 
     // 무궁화 꽃이 방 생성
     async redGreenGameRoomSave(redGreenGameRoom: RedGreenGame) {
@@ -125,6 +129,14 @@ export class SessionInfoService {
     async redGreenGamePlayerFindByUuid(uuid: string) {
         const player = await this.redGreenPlayerRepository.findOne({
             where: { uuid },
+        });
+        return player;
+    }
+
+    // 무궁화 꽃이 플레이어 조회 rellation
+    async redGreenGamePlayerFindByUuidRelation(uuid: string) {
+        const player = await this.redGreenPlayerRepository.findOne({
+            where: { uuid }, relations: ['room'],
         });
         return player;
     }
@@ -263,9 +275,9 @@ export class SessionInfoService {
         return this.redGreenPlayerRepository.save(player);
     }
 
-    async findHost(uuid: string) {
-        return this.hostRepository.findOne({ where: { uuid } });
-    }
+    // async findHost(uuid: string) {
+    //     return this.hostRepository.findOne({ where: { uuid } });
+    // }
 
     // 무궁화 꽃이 방 제거
     async redGreenGameRoomDelete(room_id: number) {

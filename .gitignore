@@ -39,3 +39,4 @@ lerna-debug.log*
 
 #데이터 베이스 파일
 .db
+recre.db

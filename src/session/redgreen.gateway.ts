@@ -42,12 +42,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     private uuidToSocket = new Map<string, Socket>();
     private socketToUuid = new Map<Socket, string>();
 
-
-
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
     private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
 
-    handleConnection(client: Socket) {
+    async handleConnection(client: Socket) {
         const uuId = client.handshake.query.uuId;
         console.log('레드그린 클라이언트 접속 로그: ', uuId);
         if (uuId === undefined) {
@@ -64,6 +62,11 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             console.log('기존 접속자');
             const oldSocket = this.uuidToSocket.get(uuId.toString());
             if (oldSocket !== null) oldSocket.disconnect();
+            const player = await this.sessionInfoService.redGreenGamePlayerFindByUuidRelation(uuId.toString());
+            // console.log("player: "+player);
+            if (player) {
+                client.join(player.room.toString());
+            }
             this.uuidToSocket.set(uuId.toString(), client);
         }
         this.socketToUuid.set(client, uuId.toString());
@@ -78,7 +81,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         if (player === undefined || host === undefined) {
             this.uuidToSocket.delete(uuId);
         }
-        if(this.uuidToSocket.get(uuId) == client){
+        if (this.uuidToSocket.get(uuId) == client) {
             this.uuidToSocket.set(uuId, null);
         }
         this.socketToUuid.delete(client);
@@ -92,8 +95,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const players = await room.players;
         for (const player of players) {
             const socket = this.uuidToSocket.get(player.uuid);
-            if (socket !== undefined)
-                this.playerDisconnect(player.uuid);
+            if (socket !== undefined) this.playerDisconnect(player.uuid);
         }
         //호스트 제거
         this.sessionInfoService.hostDelete(uuId);
@@ -104,8 +106,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     private playerDisconnect(uuId: string) {
         const player_socket = this.uuidToSocket.get(uuId);
         this.sessionInfoService.redGreenGamePlayerRemove(uuId);
-        if(player_socket !== null)
-            player_socket.disconnect();
+        if (player_socket !== null) player_socket.disconnect();
         this.uuidToSocket.delete(uuId);
     }
 
@@ -156,8 +157,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const { user_num, goalDistance, winnerNum } = payload;
 
         //이미 방이 존재하는 경우
-        Logger.log("방 있나? "+await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString()));
-        if (await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString()) != null) {
+        Logger.log('방 있나? ' + (await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())));
+        if ((await this.sessionInfoService.hostFind(client.handshake.query.uuId.toString())) != null) {
             Logger.log('방을 재생성 합니다.');
             //게임 종료 로직
 
@@ -177,7 +178,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         redGreenGame.status = 'wait';
         redGreenGame.length = goalDistance;
         redGreenGame.win_num = winnerNum;
-        redGreenGame.room_id = host.host_id
+        redGreenGame.room_id = host.host_id;
 
         host.room = Promise.resolve(redGreenGame);
         console.log(host);
@@ -186,7 +187,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     @SubscribeMessage('ready')
-    async ready(client: Socket, payload: {room_id: number, nickname: string}) {
+    async ready(client: Socket, payload: { room_id: number; nickname: string }) {
         Logger.log('레드그린 클라이언트 ready: ' + client.handshake.query.uuId);
         const { room_id, nickname } = payload;
         const room = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
@@ -195,6 +196,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         player.name = nickname;
         player.uuid = client.handshake.query.uuId.toString();
         player.room = room_id;
+        client.join(room_id.toString());
         await this.sessionInfoService.redGreenGamePlayerSave(player);
         await this.sessionInfoService.redGreenGameRoomSave(room);
     }
@@ -203,8 +205,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async leave(client: Socket) {
         Logger.log('레드그린 클라이언트 leave: ' + client.handshake.query.uuId);
         const uuid = client.handshake.query.uuId.toString();
-        const player = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
-        const room = await player.room
+        const player = await this.sessionInfoService.redGreenGamePlayerFindByUuidRelation(uuid);
+        const room = await player.room;
         room.current_user_num -= 1;
         await this.sessionInfoService.redGreenGamePlayerRemove(uuid);
         this.playerDisconnect(uuid);
@@ -212,7 +214,11 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @SubscribeMessage('start_game')
     async startGame(client: Socket, payload: any) {
-        throw new Error('Method not implemented.');
+        const uuid = client.handshake.query.uuId.toString();
+        const room = await (await this.sessionInfoService.hostFindRelation(uuid)).room;
+        this.server.to(room.room_id.toString()).emit('start_game', {});
+        room.status = 'playing';
+        // 이제 호스트는 3,2,1 숫자를 세고 본 게임을 시작하게 된다.
     }
 
     @SubscribeMessage('im_ready')
@@ -262,7 +268,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async stop(client: Socket, payload: { cur_time: Date }) {
         const { cur_time } = payload;
         const uuid = client.handshake.query.uuId.toString();
-        const host = await this.sessionInfoService.findHost(uuid);
+        const host = await this.sessionInfoService.hostFind(uuid);
         const game = await this.sessionInfoService.findRedGreenGame((await host.room).room_id);
         game.killer_mode = true;
         await this.sessionInfoService.saveGame(game);
@@ -280,7 +286,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async resume(client: Socket, payload: { cur_time: Date }) {
         const { cur_time } = payload;
         const uuid = client.handshake.query.uuId.toString();
-        const host = await this.sessionInfoService.findHost(uuid);
+        const host = await this.sessionInfoService.hostFind(uuid);
         const game = await this.sessionInfoService.findRedGreenGame((await host.room).room_id);
         game.killer_mode = false;
         await this.sessionInfoService.saveGame(game);
@@ -334,7 +340,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
     }
 
-
     /**
      * host가 명시적으로 게임을 종료
      * @param client host
@@ -346,7 +351,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.hostDisconnect(uuId);
     }
 
-
     onModuleInit() {
         // setInterval(() => {
         //     this.syncGameRoomInfo();
@@ -357,9 +361,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }, 4000);
     }
 
-
-
-        // /**
+    // /**
     //  * host가 명시적으로 게임을 종료
     //  * @param client host
     //  * @param payload
