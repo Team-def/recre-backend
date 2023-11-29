@@ -250,12 +250,12 @@ export class SessionInfoService {
     /* after Game */
     // find RedGreenPlayer by uuid
     async findRedGreenPlayer(uuid: string) {
-        return this.redGreenPlayerRepository.findOne({ where: { uuid } });
+        return this.redGreenPlayerRepository.findOne({ where: { uuid }, relations: ['room'] });
     }
 
     // find RedGreenGame by room_id
     async findRedGreenGame(room_id: number) {
-        return this.redGreenGameRepository.findOne({ where: { room_id } });
+        return this.redGreenGameRepository.findOne({ where: { room_id }, relations: ['players'] });
     }
 
     // save player's real-time information

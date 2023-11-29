@@ -26,7 +26,7 @@ export abstract class Room {
         onDelete: 'CASCADE',
     })
     @JoinColumn()
-    host: Host;
+    host: Promise<Host>;
 
     // wait, playing, end
     @Column({ type: 'varchar', length: 30 })
