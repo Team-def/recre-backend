@@ -30,5 +30,5 @@ export class Player {
         nullable: false,
         onDelete: 'CASCADE',
     })
-    room: Room;
+    room: any;
 }
