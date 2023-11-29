@@ -218,6 +218,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const room = await (await this.sessionInfoService.hostFindRelation(uuid)).room;
         this.server.to(room.room_id.toString()).emit('start_game', {});
         room.status = 'playing';
+        await this.sessionInfoService.redGreenGameRoomSave(room);
         // 이제 호스트는 3,2,1 숫자를 세고 본 게임을 시작하게 된다.
     }
 
@@ -340,6 +341,34 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
     }
 
+    async syncGameRoomInfo() {
+        const games = await this.sessionInfoService.getRedGreenGamesRelation();
+        // console.log('syncGameRoomInfo: ' + games);
+        if(games.length === 0) return;
+        for (const game of games) {
+            if(game.status !== 'playing') continue;
+            const host = await game.host;
+            const players = await game.players;
+            const host_socket = this.uuidToSocket.get(host.uuid);
+
+            Logger.debug(JSON.stringify(players, null, 4));    // stringify with 4 spaces at each level)
+
+            if (host_socket === undefined) return;
+            host_socket.emit('players_status', {
+                player_info: players,
+            });
+
+
+            // for (const player_socket of player_sockets) {
+            //     player_socket.emit('sync_game_room_info', {
+            //         room_id: room.room_id,
+            //         host: host,
+            //         players: players,
+            //     });
+            // }
+        }
+    }
+
     /**
      * host가 명시적으로 게임을 종료
      * @param client host
@@ -355,6 +384,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         // setInterval(() => {
         //     this.syncGameRoomInfo();
         // }, 3000);
+        setInterval(() => {
+            this.syncGameRoomInfo();
+        }, 3000);
 
         setInterval(() => {
             this.checkInactiveClients();

@@ -74,7 +74,7 @@ export class SessionInfoService {
     }
 
     // 무궁화 꽃이 방 생성
-    async redGreenGameRoomSave(redGreenGameRoom: RedGreenGame) {
+    async redGreenGameRoomSave(redGreenGameRoom: any) {
         await this.redGreenGameRepository.save(redGreenGameRoom);
         // console.log(catchroom.id);
         return redGreenGameRoom;
@@ -133,10 +133,15 @@ export class SessionInfoService {
         return player;
     }
 
+    async getRedGreenGamesRelation(): Promise<RedGreenGame[]> {
+        return this.redGreenGameRepository.find({relations: ['players']});
+    }
+
     // 무궁화 꽃이 플레이어 조회 rellation
     async redGreenGamePlayerFindByUuidRelation(uuid: string) {
         const player = await this.redGreenPlayerRepository.findOne({
-            where: { uuid }, relations: ['room'],
+            where: { uuid },
+            relations: ['room'],
         });
         return player;
     }
