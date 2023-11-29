@@ -198,8 +198,14 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     @SubscribeMessage('leave')
-    async leave(client: Socket, payload: any) {
-        throw new Error('Method not implemented.');
+    async leave(client: Socket) {
+        Logger.log('레드그린 클라이언트 leave: ' + client.handshake.query.uuId);
+        const uuid = client.handshake.query.uuId.toString();
+        const player = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+        const room = await player.room
+        room.current_user_num -= 1;
+        await this.sessionInfoService.redGreenGamePlayerRemove(uuid);
+        this.playerDisconnect(uuid);
     }
 
     @SubscribeMessage('start_game')
