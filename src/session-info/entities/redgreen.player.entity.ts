@@ -1,5 +1,7 @@
-import { ChildEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { ChildEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Player } from './player.entity';
+import { RedGreenGame } from './redgreen.game.entity';
+import { Room } from './room.entity';
 
 @ChildEntity()
 export class RedGreenPlayer extends Player {
@@ -15,5 +17,4 @@ export class RedGreenPlayer extends Player {
      */
     @Column({ type: 'datetime', nullable: true, default: 0 })
     endtime: Date;
-    gameRoom: any;
 }
