@@ -274,10 +274,19 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }
 
         if (player.distance >= game.length) {
-            this.touchdown(uuid);
-            /**
-             * @todo 게임 종료 로직
-             */
+            await this.touchdown(uuid);
+
+            const winners = [];
+            for (const player of game.players) {
+                if (player.state === 'FINISH') {
+                    winners.push({ nickname: player.name, score: player.distance });
+                }
+            }
+            if (winners.length == game.win_num) {
+                game.status = 'end';
+                await this.sessionInfoService.saveGame(game);
+                host.emit('game_finished', { winners });
+            }
             return;
         }
     }
@@ -394,6 +403,35 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             // }
         }
     }
+
+    // @SubscribeMessage('game_finished')
+    // async gameFinished(client: Socket, payload: any) {
+    //     const uuid = client.handshake.query.uuId.toString();
+    //     const host = await this.sessionInfoService.hostFind(uuid);
+    //     const room = await host.room;
+    //     //게임 종료
+    //     this.server.to(room.room_id.toString()).emit('game_finished', {
+    //         result: true,
+    //     });
+
+    //     this.sessionInfoService.getRedGreenPlayers().then(async (players) => {
+    //         for (const player of players) {
+    //             room.current_user_num--;
+    //             Logger.log('게임 참가자 나감: ' + player.uuid);
+    //             Logger.log(
+    //                 '게임 참가자: ' +
+    //                     player.name +
+    //                     ' 룸 번호: ' +
+    //                     room.room_id +
+    //                     ' 현재 인원: ' +
+    //                     room.current_user_num,
+    //             );
+    //             // disconnect player
+    //             const clientsocket = this.uuidToSocket.get(player.uuid);
+    //             clientsocket.emit('disconnect');
+    //         }
+    //     });
+    // }
 
     /**
      * host가 명시적으로 게임을 종료
