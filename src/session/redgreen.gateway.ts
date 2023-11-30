@@ -235,6 +235,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.playerDisconnect(uuid);
     }
 
+    /**
+     * @param client host
+     * @param payload none
+     */
     @SubscribeMessage('start_game')
     async startGame(client: Socket, payload: any) {
         const uuid = client.handshake.query.uuId.toString();
@@ -243,10 +247,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             client.emit('start_game', { result: false, message: '이미 시작된 게임입니다.' });
             return;
         }
-        this.server.to(room.room_id.toString()).emit('start_game', {});
         room.status = 'playing';
         await this.sessionInfoService.redGreenGameSave(room);
         // 이제 호스트는 3,2,1 숫자를 세고 본 게임을 시작하게 된다.
+        this.server.to(room.room_id.toString()).emit('start_game', { result: true });
         client.emit('start_game', { result: true });
     }
 
