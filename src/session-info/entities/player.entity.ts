@@ -13,7 +13,7 @@ import { Room } from './room.entity';
 
 @TableInheritance({ column: { type: 'varchar', name: 'player_type' } })
 @Entity('player')
-export class Player {
+export abstract class Player {
     @Column({ type: 'varchar', length: 30 })
     @PrimaryColumn()
     uuid: string;
@@ -30,5 +30,5 @@ export class Player {
         nullable: false,
         onDelete: 'CASCADE',
     })
-    room: any;
+    room: Promise<Room>;
 }
