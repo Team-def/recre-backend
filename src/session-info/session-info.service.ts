@@ -30,12 +30,12 @@ export class SessionInfoService {
     ) {}
 
     // 호스트 생성
-    async HostSave(host: Host) {
+    async hostSave(host: Host) {
         return this.hostRepository.save(host);
     }
 
     // 호스트 제거
-    async HostDelete(uuid: string) {
+    async hostDelete(uuid: string) {
         return this.hostRepository.delete({ uuid });
     }
 

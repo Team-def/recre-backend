@@ -98,7 +98,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             if (socket !== undefined) this.playerDisconnect(player.uuid);
         }
         //호스트 제거
-        await this.sessionInfoService.HostDelete(uuId);
+        await this.sessionInfoService.hostDelete(uuId);
         host_socket.disconnect();
         this.uuidToSocket.delete(uuId);
     }
@@ -166,7 +166,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             //게임 종료 로직
 
             //기존 방 삭제
-            await this.sessionInfoService.HostDelete(client.handshake.query.uuId.toString());
+            await this.sessionInfoService.hostDelete(client.handshake.query.uuId.toString());
         }
         const host = new Host();
         host.uuid = client.handshake.query.uuId.toString();
@@ -184,7 +184,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         host.room = Promise.resolve(redGreenGame);
         console.log(host);
 
-        await this.sessionInfoService.HostSave(host);
+        await this.sessionInfoService.hostSave(host);
     }
 
     @SubscribeMessage('ready')
