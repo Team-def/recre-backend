@@ -275,17 +275,16 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             await this.touchdown(uuid);
 
             const winners = [];
-            for (const player of game.players) {
-                if (player.state === 'FINISH') {
+            for (const gamer of (await game.players) as RedGreenPlayer[]) {
+                if (gamer.state === 'FINISH') {
                     winners.push({ nickname: player.name, score: player.distance });
                 }
             }
             if (winners.length == game.win_num) {
                 game.status = 'end';
-                await this.sessionInfoService.saveGame(game);
+                await this.sessionInfoService.redGreenGameSave(game);
                 host.emit('game_finished', { winners });
             }
-            return;
         }
     }
 
