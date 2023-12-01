@@ -481,7 +481,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const winners = [];
         for (const gamer of (await game.players) as RedGreenPlayer[]) {
             if (gamer.state === 'FINISH') {
-                winners.push({ nickname: gamer.name, score: gamer.distance });
+                winners.push({ name: gamer.name, score: gamer.distance });
             }
         }
         game.status = 'end';
