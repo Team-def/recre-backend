@@ -17,7 +17,7 @@ import { Host } from 'src/session-info/entities/host.entity';
 import { CatchGame } from 'src/session-info/entities/catch.game.entity';
 import { SocketExtension } from './socket.extension';
 @WebSocketGateway({
-    // namespace: 'catch', /// TODO - namespace는 나중에 정의할 것
+    namespace: 'catch', /// TODO - namespace는 나중에 정의할 것
     transports: ['websocket'],
     pingInterval: 3000,
     pingTimeout: 10000,
@@ -463,26 +463,24 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
     @UseGuards(SessionGuard)
     @SubscribeMessage('set_catch_answer')
     async setCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
-        const hostuuId = client.handshake.query.uuId.toString();
-        if (hostuuId === undefined) {
+
+        const { room_id, ans } = payload;
+        const room: CatchGame = await this.sessionInfoService.catchGameRoomFindByRoomId(Number(room_id));
+        const hostUuid = (await room.host).uuid.toString();
+        const hostSocket = this.uuidToSocket.get(hostUuid);
+        if (room === null) {
             client.emit('set_catch_answer', {
                 type: 'not_found_room',
                 message: '방이 존재하지 않습니다.',
             });
             return;
         }
-        this.clientsLastActivity.set(hostuuId, {
+        this.clientsLastActivity.set(hostUuid, {
             lastActivity: Date.now(),
         });
 
-        console.log('정답 입력 로그: ', hostuuId);
-        // const hostuuid = this.hostuuidByRoomId.get(Number(payload.room_id));
+        console.log('정답 입력 로그: ', hostUuid);
 
-        const host: Host = await this.sessionInfoService.hostFindByUuid(hostuuId);
-        const hostSocket = this.uuidToSocket.get(hostuuId);
-
-        const { room_id, ans } = payload;
-        const room: CatchGame = (await host.room) as CatchGame;
 
         if (room.status !== 'wait') {
             console.log('게임이 이미 시작되었습니다.');
@@ -495,6 +493,7 @@ export class SessionGateway implements OnGatewayConnection, OnGatewayDisconnect 
         }
 
         room.ans = ans;
+        this.sessionInfoService.catchGameRoomSave(room);
         Logger.log(room_id + '번방 정답 설정: ' + ans);
         hostSocket.emit('set_catch_answer', { type: 'answer_success', answer: ans });
         client.emit('set_catch_answer', { type: 'answer_success', answer: ans });
