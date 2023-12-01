@@ -157,7 +157,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const { user_num, goalDistance, winnerNum } = payload;
 
         //이미 방이 존재하는 경우
-        const oldRoom : RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(client.hostInfo.id);
+        const oldRoom: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(client.hostInfo.id);
         if (oldRoom !== null) {
             Logger.log('방을 재생성 합니다.');
             const host = await this.sessionInfoService.hostFindByRoomId(client.hostInfo.id);
@@ -186,14 +186,31 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: number; nickname: string }) {
+        const uuid = client.handshake.query.uuId.toString();
         Logger.log('레드그린 클라이언트 payload: ' + JSON.stringify(payload, null, 4), 'READY');
         const { room_id, nickname } = payload;
         const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
+
         if (room.status !== 'wait') {
             Logger.error('이미 시작된 게임입니다.', 'ready');
             client.emit('ready', { result: false, message: '이미 시작된 게임입니다.' });
             return;
         }
+        if (room.current_user_num >= room.user_num) {
+            Logger.error('방이 꽉 찼습니다.', 'ready');
+            client.emit('ready', { result: false, message: '방이 꽉 찼습니다.' });
+            return;
+        }
+
+        if ((await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid)) == null) {
+            Logger.log('이미 참가중입니다.');
+            client.emit('ready', {
+                result: false,
+                message: '이미 참가중입니다.',
+            });
+            return;
+        }
+
         room.current_user_num += 1;
         room.current_alive_num += 1;
         const player: RedGreenPlayer = new RedGreenPlayer();
@@ -209,7 +226,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const host_socket = this.uuidToSocket.get(host.uuid);
         host_socket.emit('player_list_add', {
             player_cnt: room.current_user_num,
-            nickname: nickname,
+            name: nickname,
         });
     }
 
@@ -232,7 +249,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const host_socket = this.uuidToSocket.get(host.uuid);
         host_socket.emit('player_list_remove', {
             player_cnt: room.current_user_num,
-            nickname: player.name,
+            name: player.name,
         });
 
         await this.sessionInfoService.redGreenGameSave(room);
