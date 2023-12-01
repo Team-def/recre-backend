@@ -202,7 +202,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return;
         }
 
-        if ((await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid)) == null) {
+        if ((await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid)) != null) {
             Logger.log('이미 참가중입니다.');
             client.emit('ready', {
                 result: false,
