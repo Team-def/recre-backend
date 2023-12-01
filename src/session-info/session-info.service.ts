@@ -30,26 +30,36 @@ export class SessionInfoService {
     ) {}
 
     // 호스트 생성
-    hostCreate(host: Host) {
+    async hostSave(host: Host) {
         return this.hostRepository.save(host);
     }
 
     // 호스트 제거
-    async hostRemove(uuid: string) {
-        const host = await this.hostRepository.findOne({ where: { uuid } });
-        await this.hostRepository.remove(host);
-        return true;
+    async hostDelete(uuid: string) {
+        return this.hostRepository.delete({ uuid });
+    }
+
+    // 호스트 조회 (방 아이디로)
+    async hostFindByRoomId(room_id: number) {
+        return this.hostRepository.findOne({ where: { room: { room_id } } });
+    }
+
+    // 호스트 조회
+    async hostFindByUuid(uuid: string) {
+        console.log("aaaaaaaa",uuid);
+        return this.hostRepository.findOne({ where: { uuid } });
     }
 
     // 캐치 마인드 방 생성
-    async catchGameRoomCreate(catchGameRoom: CatchGame, host_id: number) {
-        const host = await this.hostRepository.findOne({
-            where: { host_id: host_id },
+    async catchGameRoomSave(catchGameRoom: CatchGame) {
+        return this.catchGameRepository.save(catchGameRoom);
+    }
+
+    // 캐치 마인드 방 조회 (방 아이디로)  
+    async catchGameRoomFindByRoomId(room_id: number) {
+        return this.catchGameRepository.findOne({
+            where: { room_id },
         });
-        host.room = Promise.resolve(catchGameRoom);
-        await this.hostRepository.save(host);
-        // console.log(catchroom.id);
-        return catchGameRoom;
     }
 
     // 캐치 마인드 정답 입력
@@ -62,174 +72,53 @@ export class SessionInfoService {
         return true;
     }
 
+    // 무궁화 전체 방 조회
+    async redGreenGameFindAll() {
+        return this.redGreenGameRepository.find();
+    }
+
     // 무궁화 꽃이 방 생성
-    async redGreenGameRoomCreate(redGreenGameRoom: RedGreenGame, host_id: number) {
-        const host = await this.hostRepository.findOne({
-            where: { host_id: host_id },
+    async redGreenGameSave(redGreenGameRoom: RedGreenGame) {
+        return this.redGreenGameRepository.save(redGreenGameRoom);
+    }
+
+    // 무궁화 방 조회 (방 아이디로)
+    async redGreenGameFindByRoomId(room_id: number) {
+        return await this.redGreenGameRepository.findOne({
+            where: { room_id },
         });
-        host.room = Promise.resolve(redGreenGameRoom);
-        await this.hostRepository.save(host);
-        // console.log(catchroom.id);
-        return redGreenGameRoom;
+    }
+
+    async catchGamePlayerFindByUuid(uuid: string) {
+        return this.catchPlayerRepository.findOne({
+            where: { uuid },
+        });
     }
 
     // 캐치마인드 플레이어 생성
-    async catchGamePlayerCreate(player: CatchPlayer, room_id: number) {
-        const room = await this.catchGameRepository.findOne({
-            where: { room_id },
-        });
-        (await room.players).push(player);
-        await this.catchGameRepository.save(room); // Fix: Pass the room object to the save method
-
-        return player;
+    async catchGamePlayerSave(player: CatchPlayer) {
+        return this.catchPlayerRepository.save(player);
     }
 
     // 캐치마인트 플레이어 제거
-    async catchGamePlayerRemove(uuid: string) {
-        const player = await this.catchPlayerRepository.findOne({
-            where: { uuid },
-        });
-        await this.catchPlayerRepository.remove(player);
-
-        return true;
+    async catchGamePlayerDelete(uuid: string) {
+        return this.catchPlayerRepository.delete({ uuid });
     }
 
     // 무궁화 꽃이 플레이어 생성
-    async redGreenGamePlayerCreate(player: RedGreenPlayer, room_id: number) {
-        const room = await this.redGreenGameRepository.findOne({
-            where: { room_id },
-        });
-        (await room.players).push(player);
-        await this.redGreenGameRepository.save(room); // Fix: Pass the room object to the save method
-
-        return player;
+    async redGreenGamePlayerSave(player: RedGreenPlayer) {
+        return this.redGreenPlayerRepository.save(player);
     }
 
     // 무궁화 꽃이 플레이어 제거
-    async redGreenGamePlayerRemove(uuid: string) {
-        const player = await this.redGreenPlayerRepository.findOne({
+    async redGreenGamePlayerDelete(uuid: string) {
+        return this.redGreenPlayerRepository.delete({ uuid });
+    }
+
+    // 무궁화 꽃이 플레이어 조회
+    async redGreenGamePlayerFindByUuid(uuid: string) {
+        return this.redGreenPlayerRepository.findOne({
             where: { uuid },
         });
-        await this.redGreenPlayerRepository.remove(player);
-
-        return true;
-    }
-
-    async hostDelete(req: any) {
-        const host = await this.hostRepository.findOne({
-            where: { uuid: req.uuid },
-        });
-        console.log(host);
-
-        await this.hostRepository.remove(host);
-
-        return '호스트 삭제';
-    }
-
-    async roomDelete(req: any) {
-        const room = await this.catchGameRepository.findOne({
-            where: { room_id: req.room_id },
-        });
-        console.log(room);
-
-        await this.catchGameRepository.remove(room); // Fix: Use the remove method instead of delete
-
-        return '룸 삭제';
-    }
-
-    async getHost(req: any) {
-        let host = await this.hostRepository.findOne({
-            where: { uuid: req.uuid },
-        });
-        // await host.room;
-        await (
-            await host.room
-        ).players;
-        // console.log("----------------------------------");
-        // console.log(room);
-        console.log((await host.room).players);
-        console.log(host);
-        return host;
-    }
-
-    async playercreate(req: any) {
-        const player = new RedGreenPlayer();
-        player.uuid = req.uuid;
-        player.name = req.name;
-        player.socket_id = req.socket_id;
-
-        console.log(req.room_id);
-        const room = await this.redGreenGameRepository.findOne({
-            where: { room_id: req.room_id },
-        });
-        console.log(room);
-        (await room.players).push(player);
-        console.log(room);
-        await this.redGreenGameRepository.save(room); // Fix: Pass the room object to the save method
-        console.log(room);
-
-        return '플레이어 생성';
-    }
-
-    async RedGreenCreate() {
-        let redGreenGame = new RedGreenGame();
-        redGreenGame.room_id = 2;
-        redGreenGame.current_user_num = 0;
-        redGreenGame.user_num = 10;
-        redGreenGame.status = 'wait';
-
-        const host = await this.hostRepository.findOne({
-            where: { host_id: 1 },
-        });
-        console.log(host);
-        host.room = Promise.resolve(redGreenGame);
-        console.log(host);
-        await this.hostRepository.save(host);
-        // console.log(catchroom.id);
-        return '캐치마인드 방 만듦';
-    }
-
-    async catchreate() {
-        let catchroom = new CatchGame();
-        catchroom.room_id = 2;
-        catchroom.ans = 'hello';
-        catchroom.current_user_num = 0;
-        catchroom.user_num = 10;
-        catchroom.status = 'wait';
-        const host = await this.hostRepository.findOne({
-            where: { host_id: 1 },
-        });
-        console.log(host);
-        host.room = Promise.resolve(catchroom);
-        console.log(host);
-        await this.hostRepository.save(host);
-        // console.log(catchroom.id);
-        return '캐치마인드 방 만듦';
-    }
-
-    async getcatchPlayers() {
-        const players = await this.catchPlayerRepository.find();
-        return players;
-    }
-
-    async getRedGreenPlayers() {
-        const players = await this.redGreenPlayerRepository.find();
-        return players;
-    }
-
-    findAll() {
-        return `This action returns all sessionInfo`;
-    }
-
-    findOne(id: number) {
-        return `This action returns a #${id} sessionInfo`;
-    }
-
-    // update(id: number, updateSessionInfoDto: UpdateSessionInfoDto) {
-    //   return `This action updates a #${id} sessionInfo`;
-    // }
-
-    remove(id: number) {
-        return `This action removes a #${id} sessionInfo`;
     }
 }

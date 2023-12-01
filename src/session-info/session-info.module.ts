@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { SessionInfoService } from './session-info.service';
-import { SessionInfoController } from './session-info.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Player } from './entities/player.entity';
 import { CatchGame } from './entities/catch.game.entity';
@@ -14,7 +13,7 @@ import { RedGreenGame } from './entities/redgreen.game.entity';
     imports: [
         TypeOrmModule.forFeature([Player, CatchGame, RedGreenGame, Room, Host, RedGreenPlayer, CatchPlayer], 'sqlite'),
     ],
-    controllers: [SessionInfoController],
     providers: [SessionInfoService],
+    exports: [SessionInfoService],
 })
 export class SessionInfoModule {}

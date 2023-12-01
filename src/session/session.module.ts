@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
-import { SessionGateway } from './session.gateway';
-import { AuthService } from 'src/auth/auth.service';
 import { JwtModule } from '@nestjs/jwt';
-import { UserService } from 'src/user/user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { SessionGuard } from './session.guard';
 
+import { SessionInfoModule } from '../session-info/session-info.module';
+import { AuthModule } from '../auth/auth.module';
+import { UserModule } from '../user/user.module';
+import { RedGreenGateway } from './redgreen.gateway';
+import { RedGreenService } from './redgreen.service';
+import { CatchGateway } from './catch.gateway';
+
 @Module({
-    imports: [JwtModule.register({}), TypeOrmModule.forFeature([User])],
-    providers: [SessionGateway, AuthService, UserService, SessionGuard],
+    imports: [JwtModule.register({}), TypeOrmModule.forFeature([User]), SessionInfoModule, UserModule, AuthModule],
+    providers: [CatchGateway,RedGreenGateway, RedGreenService, SessionGuard],
+    exports: [SessionGuard],
 })
 export class SessionModule {}
