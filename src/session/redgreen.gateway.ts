@@ -173,6 +173,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         redGreenGame.length = goalDistance;
         redGreenGame.win_num = winnerNum;
         redGreenGame.room_id = host.host_id;
+        redGreenGame.current_win_num = 0;
 
         host.room = Promise.resolve(redGreenGame);
         console.log(host);
@@ -191,6 +192,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return;
         }
         room.current_user_num += 1;
+        room.current_alive_num += 1;
         const player: RedGreenPlayer = new RedGreenPlayer();
         player.name = nickname;
         player.uuid = client.handshake.query.uuId.toString();
@@ -271,26 +273,24 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
         console.log(game);
+        const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+
         if (game.status !== 'playing') {
             client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
             return;
         }
-        const host = this.uuidToSocket.get((await game.host).uuid);
         if (game.killer_mode === true) {
-            this.youdie(uuid);
-            return;
+            await this.youdie(player, game);
         } else {
             player.distance = shakeCount;
             await this.sessionInfoService.redGreenGamePlayerSave(player);
-            host.emit('run', { uuid, shakeCount });
+            hostSocket.emit('run', { uuid, shakeCount });
+            if (player.distance >= game.length) {
+                await this.touchdown(player, game);
+            }
         }
-
-        if (player.distance >= game.length) {
-            this.touchdown(uuid);
-            /**
-             * @todo 게임 종료 로직
-             */
-            return;
+        if (game.current_alive_num <= 0 || game.current_win_num >= game.win_num) {
+            await this.finish(game);
         }
     }
 
@@ -347,34 +347,34 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     // @SubscribeMessage('youdie')
-    async youdie(uuid: string) {
-        const clientsocket = this.uuidToSocket.get(uuid);
-        const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+    async youdie(player: RedGreenPlayer, game: RedGreenGame) {
         if (!player) {
-            Logger.error(uuid + '는 게임 참가자가 아닙니다.');
-            return { result: false, message: uuid + '는 게임 참가자가 아닙니다.' };
+            Logger.error(player.name + '는 게임 참가자가 아닙니다.');
+            return { result: false, message: player.name + '는 게임 참가자가 아닙니다.' };
         }
-        const game: RedGreenGame = (await player.room) as RedGreenGame;
         if (game.status !== 'playing') {
             Logger.error('게임이 시작되지 않았습니다.');
             return { result: false, message: '게임이 시작되지 않았습니다.' };
         }
-        const host = this.uuidToSocket.get((await game.host).uuid);
-        if (!host) {
+        const clientSocket = this.uuidToSocket.get(player.uuid);
+        const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+        if (!hostSocket) {
             Logger.error('호스트가 없습니다.');
             return { result: false, message: '호스트가 없습니다.' };
         }
 
         player.state = 'DEAD';
         player.endtime = new Date();
+        game.current_alive_num -= 1;
+        await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
-        clientsocket.emit('youdie', {
+        clientSocket.emit('youdie', {
             result: true,
             name: player.name,
             distance: player.distance,
             endtime: player.endtime,
         });
-        host.emit('youdie', {
+        hostSocket.emit('youdie', {
             result: true,
             name: player.name,
             distance: player.distance,
@@ -383,14 +383,11 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     // @SubscribeMessage('touchdown')
-    async touchdown(uuid: string) {
-        const clientsocket = this.uuidToSocket.get(uuid);
-        const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+    async touchdown(player: RedGreenPlayer, game: RedGreenGame) {
         if (!player) {
-            Logger.error(uuid + '는 게임 참가자가 아닙니다.', 'touchdown');
-            return { result: false, message: uuid + '는 게임 참가자가 아닙니다.' };
+            Logger.error(player.name + '는 게임 참가자가 아닙니다.', 'touchdown');
+            return { result: false, message: player.name + '는 게임 참가자가 아닙니다.' };
         }
-        const game: RedGreenGame = (await player.room) as RedGreenGame;
         if (game.status !== 'playing') {
             Logger.error('게임이 시작되지 않았습니다.', 'touchdown');
             return { result: false, message: '게임이 시작되지 않았습니다.' };
@@ -400,9 +397,17 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             Logger.error('호스트 소켓이 없습니다.', 'touchdown');
             return { result: false, message: '호스트소켓이 없습니다.' };
         }
+        const clientsocket = this.uuidToSocket.get(player.uuid);
+        if (!clientsocket) {
+            Logger.error('클라이언트 소켓이 없습니다.', 'touchdown');
+            return { result: false, message: '클라이언트 소켓이 없습니다.' };
+        }
 
         player.state = 'FINISH';
         player.endtime = new Date();
+        game.current_win_num += 1;
+        game.current_alive_num -= 1;
+        await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
         clientsocket.emit('touchdown', {
             result: true,
@@ -441,6 +446,28 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             //     });
             // }
         }
+    }
+
+    @SubscribeMessage('game_finished')
+    async gameFinished(client: Socket, payload: any) {
+        const uuid = client.handshake.query.uuId.toString();
+        const host = await this.sessionInfoService.hostFindByUuid(uuid);
+        const game: RedGreenGame = (await host.room) as RedGreenGame;
+        this.finish(game);
+    }
+
+    async finish(game: RedGreenGame) {
+        const host_socket = this.uuidToSocket.get((await game.host).uuid);
+        const winners = [];
+        for (const gamer of (await game.players) as RedGreenPlayer[]) {
+            if (gamer.state === 'FINISH') {
+                winners.push({ nickname: gamer.name, score: gamer.distance });
+            }
+        }
+        game.status = 'end';
+        await this.sessionInfoService.redGreenGameSave(game);
+        console.log('게임 종료 winners: ', winners);
+        host_socket.emit('game_finished', { winners });
     }
 
     /**
