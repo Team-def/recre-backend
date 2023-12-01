@@ -85,7 +85,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const players = await room.players;
         for (const player of players) {
             const playerSocket = this.uuidToSocket.get(player.uuid);
-            if (playerSocket !== undefined) {
+            if (playerSocket) {
                 playerSocket.emit('end', { result: true });
                 this.playerDisconnect(player.uuid);
             }
