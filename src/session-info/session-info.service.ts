@@ -46,18 +46,20 @@ export class SessionInfoService {
 
     // 호스트 조회
     async hostFindByUuid(uuid: string) {
+        console.log("aaaaaaaa",uuid);
         return this.hostRepository.findOne({ where: { uuid } });
     }
 
     // 캐치 마인드 방 생성
-    async catchGameRoomCreate(catchGameRoom: CatchGame, host_id: number) {
-        // const host = await this.hostRepository.findOne({
-        //     where: { host_id: host_id },
-        // });
-        // host.room = Promise.resolve(catchGameRoom);
-        // await this.hostRepository.save(host);
-        // // console.log(catchroom.id);
-        // return catchGameRoom;
+    async catchGameRoomSave(catchGameRoom: CatchGame) {
+        return this.catchGameRepository.save(catchGameRoom);
+    }
+
+    // 캐치 마인드 방 조회 (방 아이디로)  
+    async catchGameRoomFindByRoomId(room_id: number) {
+        return this.catchGameRepository.findOne({
+            where: { room_id },
+        });
     }
 
     // 캐치 마인드 정답 입력
@@ -87,25 +89,20 @@ export class SessionInfoService {
         });
     }
 
-    // 캐치마인드 플레이어 생성
-    async catchGamePlayerCreate(player: CatchPlayer, room_id: number) {
-        // const room = await this.catchGameRepository.findOne({
-        //     where: { room_id },
-        // });
-        // (await room.players).push(player);
-        // await this.catchGameRepository.save(room); // Fix: Pass the room object to the save method
+    async catchGamePlayerFindByUuid(uuid: string) {
+        return this.catchPlayerRepository.findOne({
+            where: { uuid },
+        });
+    }
 
-        // return player;
+    // 캐치마인드 플레이어 생성
+    async catchGamePlayerSave(player: CatchPlayer) {
+        return this.catchPlayerRepository.save(player);
     }
 
     // 캐치마인트 플레이어 제거
-    async catchGamePlayerRemove(uuid: string) {
-        const player = await this.catchPlayerRepository.findOne({
-            where: { uuid },
-        });
-        await this.catchPlayerRepository.remove(player);
-
-        return true;
+    async catchGamePlayerDelete(uuid: string) {
+        return this.catchPlayerRepository.delete({ uuid });
     }
 
     // 무궁화 꽃이 플레이어 생성

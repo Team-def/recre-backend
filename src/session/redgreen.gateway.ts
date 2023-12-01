@@ -11,7 +11,6 @@ import { RedGreenService } from './redgreen.service';
 import { SessionGuard } from './session.guard';
 import { SocketExtension } from './socket.extension';
 import { SessionInfoService } from 'src/session-info/session-info.service';
-import { RedGreenEntity } from './game/redgreen.entity';
 import { RedGreenPlayer } from 'src/session-info/entities/redgreen.player.entity';
 import { CatchPlayer } from 'src/session-info/entities/catch.player.entitiy';
 import { CatchGame } from 'src/session-info/entities/catch.game.entity';
