@@ -28,7 +28,9 @@ export abstract class Room {
     @JoinColumn()
     host: Promise<Host>;
 
-    // wait, playing, end
+    /**
+     * enum string(wait, playing, end)
+     */
     @Column({ type: 'varchar', length: 30 })
     status: string;
 

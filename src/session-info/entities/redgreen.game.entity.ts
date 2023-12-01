@@ -14,4 +14,10 @@ export class RedGreenGame extends Room {
      */
     @Column({ type: 'boolean', nullable: false, default: false })
     killer_mode: boolean;
+
+    @Column({ type: 'integer', nullable: false, default: 0 })
+    current_win_num: number;
+
+    @Column({ type: 'integer', nullable: false, default: 0 })
+    current_alive_num: number;
 }
