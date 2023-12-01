@@ -7,7 +7,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
-import { RedGreenService } from './redgreen.service';
 import { SessionGuard } from './session.guard';
 import { SocketExtension } from './socket.extension';
 import { SessionInfoService } from 'src/session-info/session-info.service';
@@ -31,7 +30,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     server: Server;
 
     constructor(
-        private readonly redgreenService: RedGreenService,
         private readonly sessionInfoService: SessionInfoService,
     ) {}
 
@@ -482,9 +480,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     onModuleInit() {
-        // setInterval(() => {
-        //     this.syncGameRoomInfo();
-        // }, 1000);
+        setInterval(() => {
+            this.syncGameRoomInfo();
+        }, 1000);
 
         setInterval(() => {
             this.checkInactiveClients();

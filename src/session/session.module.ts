@@ -8,12 +8,11 @@ import { SessionInfoModule } from '../session-info/session-info.module';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
 import { RedGreenGateway } from './redgreen.gateway';
-import { RedGreenService } from './redgreen.service';
 import { CatchGateway } from './catch.gateway';
 
 @Module({
     imports: [JwtModule.register({}), TypeOrmModule.forFeature([User]), SessionInfoModule, UserModule, AuthModule],
-    providers: [CatchGateway,RedGreenGateway, RedGreenService, SessionGuard],
+    providers: [CatchGateway, RedGreenGateway, SessionGuard],
     exports: [SessionGuard],
 })
 export class SessionModule {}
