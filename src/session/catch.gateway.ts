@@ -160,7 +160,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await this.sessionInfoService.catchGamePlayerDelete(uuId);
 
         if (player_socket !== null) {
-            player_socket.emit('leave_game', { result: true });
+            player_socket.emit('end', { result: true });
             player_socket.disconnect();
         }
         this.uuidToSocket.delete(uuId);
