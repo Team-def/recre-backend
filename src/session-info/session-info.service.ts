@@ -46,7 +46,6 @@ export class SessionInfoService {
 
     // 호스트 조회
     async hostFindByUuid(uuid: string) {
-        console.log("aaaaaaaa",uuid);
         return this.hostRepository.findOne({ where: { uuid } });
     }
 

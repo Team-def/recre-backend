@@ -100,7 +100,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 //호스트의 경우 자동 접속해제 해제
                 if (host !== null) {
                     console.log('호스트 접속 종료: ', host);
-                    this.hostDisconnect(uuId, false);
+                    this.hostDisconnect(uuId);
                     return;
                 }
                 if (clientSocket !== null) {
@@ -132,9 +132,8 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.playerDisconnect(uuid);
     }
 
-    async hostDisconnect(uuId: string, roomRefresh: boolean) {
-        Logger.log('호스트 접속 해제 : ' + uuId);
-        const host_socket = this.uuidToSocket.get(uuId);
+    async cleanRoomByHostUuid(uuId: string) {
+        Logger.log('방 제거: ' + uuId);
         const host: Host = await this.sessionInfoService.hostFindByUuid(uuId);
         const room: CatchGame = (await host.room) as CatchGame;
         const players = await room.players;
@@ -143,13 +142,16 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 this.playerDisconnect(player.uuid);
             }
         }
-        //호스트 제거
+        //DB에서 호스트 제거
         await this.sessionInfoService.hostDelete(uuId);
+    }
 
-        if (roomRefresh !== true) {
-            host_socket.disconnect();
-            this.uuidToSocket.delete(uuId);
-        }
+    async hostDisconnect(uuId: string) {
+        Logger.log('호스트 접속 해제 : ' + uuId);
+        this.cleanRoomByHostUuid(uuId);
+        const host_socket = this.uuidToSocket.get(uuId);
+        host_socket.disconnect();
+        this.uuidToSocket.delete(uuId);
     }
 
     async playerDisconnect(uuId: string) {
@@ -196,12 +198,11 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         if ((await this.sessionInfoService.catchGameRoomFindByRoomId(hostInfo.id)) !== null) {
             // this.destroyCatchGame(Number(hostInfo.id));
-            Logger.log('이미 존재하는 방입니다.');
+            Logger.log('방을 재생성 합니다.');
             const host = await this.sessionInfoService.hostFindByRoomId(hostInfo.id);
-            await this.hostDisconnect(host.uuid, true);
+            await this.cleanRoomByHostUuid(host.uuid);
             // await this.sessionInfoService.hostDelete(host.uuid);
         }
-        console.log('왔니');
 
         // 호스트 생성
         const host = new Host();
@@ -462,7 +463,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        this.hostDisconnect(uuid, false);
+        this.hostDisconnect(uuid);
     }
 
     //캐치 마인드 정답 설정 (호스트만 가능)

@@ -29,9 +29,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     @WebSocketServer()
     server: Server;
 
-    constructor(
-        private readonly sessionInfoService: SessionInfoService,
-    ) {}
+    constructor(private readonly sessionInfoService: SessionInfoService) {}
 
     private uuidToSocket = new Map<string, Socket>();
     private socketToUuid = new Map<Socket, string>();
@@ -81,20 +79,27 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.socketToUuid.delete(client);
     }
 
-    private async hostDisconnect(uuId: string) {
-        Logger.log('호스트 접속 해제 : ' + uuId);
-        const host_socket = this.uuidToSocket.get(uuId);
-        const host: Host = await this.sessionInfoService.hostFindByUuid(uuId);
+    async cleanRoomByHostUuid(uuid: string) {
+        const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
         const room: RedGreenGame = (await host.room) as RedGreenGame;
         const players = await room.players;
         for (const player of players) {
-            const socket = this.uuidToSocket.get(player.uuid);
-            if (socket !== undefined) this.playerDisconnect(player.uuid);
+            const playerSocket = this.uuidToSocket.get(player.uuid);
+            if (playerSocket !== undefined) {
+                playerSocket.emit('end', { result: true });
+                this.playerDisconnect(player.uuid);
+            }
         }
         //호스트 제거
-        await this.sessionInfoService.hostDelete(uuId);
+        await this.sessionInfoService.hostDelete(uuid);
+    }
+
+    private async hostDisconnect(uuid: string) {
+        Logger.log('호스트 접속 해제 : ' + uuid);
+        this.cleanRoomByHostUuid(uuid);
+        const host_socket = this.uuidToSocket.get(uuid);
         host_socket.disconnect();
-        this.uuidToSocket.delete(uuId);
+        this.uuidToSocket.delete(uuid);
     }
 
     private async playerDisconnect(uuId: string) {
@@ -148,16 +153,16 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         },
     ) {
         Logger.log('레드그린 클라이언트 make_room: ' + client.handshake.query.uuId);
+        const uuid = client.handshake.query.uuId.toString();
         const { user_num, goalDistance, winnerNum } = payload;
-        const oldHost = await this.sessionInfoService.hostFindByUuid(client.handshake.query.uuId.toString());
 
         //이미 방이 존재하는 경우
-        if (oldHost) {
+        const oldRoom : RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(client.hostInfo.id);
+        if (oldRoom !== null) {
             Logger.log('방을 재생성 합니다.');
-            //게임 종료 로직
-
-            //기존 방 삭제
-            await this.sessionInfoService.hostDelete(oldHost.uuid);
+            const host = await this.sessionInfoService.hostFindByRoomId(client.hostInfo.id);
+            await this.cleanRoomByHostUuid(host.uuid);
+            // await this.hostDisconnect(host.uuid);
         }
         const host = new Host();
         host.uuid = client.handshake.query.uuId.toString();
@@ -488,38 +493,4 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             this.checkInactiveClients();
         }, 4000);
     }
-
-    // /**
-    //  * host가 명시적으로 게임을 종료
-    //  * @param client host
-    //  * @param payload
-    //  */
-    // @SubscribeMessage('end_game')
-    // async endGame(client: Socket, payload: any) {
-    //     const uuid = client.handshake.query.uuId.toString();
-    //     const host = await this.sessionInfoService.findHost(uuid);
-    //     const room = await host.room;
-    //     //게임 종료
-    //     this.server.to(room.room_id.toString()).emit('end_game', {
-    //         result: true,
-    //     });
-
-    //     this.sessionInfoService.getRedGreenPlayers().then(async (players) => {
-    //         for (const player of players) {
-    //             room.current_user_num--;
-    //             Logger.log('게임 참가자 나감: ' + player.uuid);
-    //             Logger.log(
-    //                 '게임 참가자: ' +
-    //                     player.name +
-    //                     ' 룸 번호: ' +
-    //                     room.room_id +
-    //                     ' 현재 인원: ' +
-    //                     room.current_user_num,
-    //             );
-    //             // disconnect player
-    //             const clientsocket = this.uuidToSocket.get(player.uuid);
-    //             clientsocket.emit('disconnect');
-    //         }
-    //     });
-    // }
 }
