@@ -130,6 +130,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         Logger.log('방 제거: ' + uuId);
         const host: Host = await this.sessionInfoService.hostFindByUuid(uuId);
         const room: CatchGame = (await host.room) as CatchGame;
+        this.server.to(room.room_id.toString()).emit('end', { result: true });
         const players = await room.players;
         if (players !== null) {
             for (const player of players) {
@@ -156,7 +157,6 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await this.sessionInfoService.catchGamePlayerDelete(uuId);
 
         if (player_socket !== null) {
-            player_socket.emit('end', { result: true });
             player_socket.disconnect();
         }
         this.uuidToSocket.delete(uuId);
