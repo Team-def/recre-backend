@@ -514,7 +514,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
                 try {
                     playerSocket.emit('realtime_my_rank', { rank: i + 1 });
                 } catch (error) {
-                    Logger.error(error);
+                    // Logger.error(error);
                 }
             }
         }
@@ -566,10 +566,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return b.distance - a.distance;
         });
 
-        for (let i = 0; i < playersSorted.length; i++) {
-            const playerSocket = this.uuidToSocket.get(playersSorted[i].uuid);
-            playerSocket.emit('game_finished', { rank: i + 1 });
-        }
+        this.server.to(game.room_id.toString()).emit('game_finished', { player_info: playersSorted });
 
         hostSocket.emit('game_finished', { player_info: playersSorted });
     }
