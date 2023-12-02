@@ -360,7 +360,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         game.killer_mode = true;
         await this.sessionInfoService.redGreenGameSave(game);
 
-        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: !game.killer_mode });
+        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: false });
 
         client.emit('stop', { result: true });
     }
@@ -387,6 +387,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return { result: false, message: '게임이 시작되지 않았습니다.' };
         }
         game.killer_mode = false;
+
+        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: true });
+
         await this.sessionInfoService.redGreenGameSave(game);
 
         client.emit('resume', { result: true });
