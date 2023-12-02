@@ -85,7 +85,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
         const room: RedGreenGame = (await host.room) as RedGreenGame;
         const players = await room.players;
-        
+
         this.server.to(room.room_id.toString()).emit('end', { result: true });
         for (const player of players) {
             const playerSocket = this.uuidToSocket.get(player.uuid);
@@ -179,6 +179,17 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         await this.sessionInfoService.hostSave(host);
     }
 
+    @UseGuards(SessionGuard)
+    @SubscribeMessage('close_gate')
+    async closeGate(client: SocketExtension, payload: { room_id: number;}) {
+        const { room_id } = payload;
+        const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
+        if(room.status !== 'wait') return;
+        this.server.to(payload.room_id.toString()).emit('close_gate', { result: true });
+    }
+
+
+
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: number; nickname: string }) {
         const uuid = client.handshake.query.uuId.toString();
@@ -223,16 +234,20 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return;
         }
 
-
         // 플레이어 소켓 room 등록
         client.join(room_id.toString());
-
 
         room.current_user_num += 1;
         room.current_alive_num += 1;
         await this.sessionInfoService.redGreenGameSave(room);
 
-        client.emit('ready', { result: true, message: '🆗' });
+        client.emit('ready', {
+            result: true,
+            message: '🆗',
+            win_num: room.win_num,
+            total_num: room.user_num,
+            length: room.length,
+        });
         const host = await this.sessionInfoService.hostFindByRoomId(room_id);
         const host_socket = this.uuidToSocket.get(host.uuid);
         host_socket.emit('player_list_add', {
@@ -456,7 +471,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async expressEmotion(client: Socket, payload: { room_id: string; emotion: string }) {
         const { emotion } = payload;
         const uuid = client.handshake.query.uuId.toString();
-        console.log('uuid: ', uuid)
+        console.log('uuid: ', uuid);
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         console.log('player: ', player);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
@@ -510,12 +525,31 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     async finish(game: RedGreenGame) {
-        const host_socket = this.uuidToSocket.get((await game.host).uuid);
-        const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
+        const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+        let players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
 
         game.status = 'end';
         await this.sessionInfoService.redGreenGameSave(game);
-        host_socket.emit('game_finished', { player_info: players });
+
+        const playersFinished = players.filter((player) => player.state === 'FINISH');
+        const playersDead = players.filter((player) => player.state !== 'FINISH');
+
+        playersFinished.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
+            if (a.endtime < b.endtime) return -1;
+        });
+
+        playersDead.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
+            return a.distance - b.distance;
+        });
+
+        const playersSorted = playersFinished.concat(playersDead);
+
+        for (let i = 0; i < playersSorted.length; i++) {
+            const playerSocket = this.uuidToSocket.get(playersSorted[i].uuid);
+            playerSocket.emit('game_finished', { rank: i + 1 });
+        }
+
+        hostSocket.emit('game_finished', { player_info: playersSorted });
     }
 
     /**
