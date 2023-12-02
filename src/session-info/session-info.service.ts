@@ -95,6 +95,11 @@ export class SessionInfoService {
     }
 
     // 캐치마인드 플레이어 생성
+    async catchGamePlayerInsert(player: CatchPlayer) {
+        return this.catchPlayerRepository.insert(player);
+    }
+
+    // 캐치마인드 플레이어 저장
     async catchGamePlayerSave(player: CatchPlayer) {
         return this.catchPlayerRepository.save(player);
     }
@@ -102,6 +107,11 @@ export class SessionInfoService {
     // 캐치마인트 플레이어 제거
     async catchGamePlayerDelete(uuid: string) {
         return this.catchPlayerRepository.delete({ uuid });
+    }
+
+    // 무궁화 새로운 플레이어 추가
+    async redGreenGamePlayerInsert(player: RedGreenPlayer) {
+        return this.redGreenPlayerRepository.insert(player);
     }
 
     // 무궁화 꽃이 플레이어 생성
