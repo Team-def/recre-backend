@@ -181,14 +181,12 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @UseGuards(SessionGuard)
     @SubscribeMessage('close_gate')
-    async closeGate(client: SocketExtension, payload: { room_id: number;}) {
+    async closeGate(client: SocketExtension, payload: { room_id: number }) {
         const { room_id } = payload;
         const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
-        if(room.status !== 'wait') return;
+        if (room.status !== 'wait') return;
         this.server.to(payload.room_id.toString()).emit('close_gate', { result: true });
     }
-
-
 
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: number; nickname: string }) {
@@ -362,6 +360,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         game.killer_mode = true;
         await this.sessionInfoService.redGreenGameSave(game);
 
+        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: game.killer_mode });
+
         client.emit('stop', { result: true });
     }
 
@@ -451,17 +451,20 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
         player.state = 'FINISH';
         player.endtime = new Date();
+        player.distance = game.length + game.win_num - game.current_win_num;
         game.current_win_num += 1;
         game.current_alive_num -= 1;
         await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
         clientsocket.emit('touchdown', {
             result: true,
+            rank: game.current_win_num,
             name: player.name,
             endtime: player.endtime,
         });
         host_socket.emit('touchdown', {
             result: true,
+            rank: game.current_win_num,
             name: player.name,
             endtime: player.endtime,
         });
@@ -487,6 +490,31 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }
 
         hostSocket.emit('express_emotion', { emotion });
+    }
+
+    async refreshPlayerRank() {
+        // this.sessionInfoService.redGreenGameFindAll().then((games) => {
+        const games: RedGreenGame[] = await this.sessionInfoService.redGreenGameFindAll();
+        // console.log('syncGameRoomInfo: ' + games);
+        if (games.length === 0) return;
+        for (const game of games) {
+            if (game.status !== 'playing') continue;
+            const host: Host = await game.host;
+            const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
+
+            const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
+                return a.distance - b.distance;
+            });
+
+            for (let i = 0; i < playersSorted.length; i++) {
+                const playerSocket = this.uuidToSocket.get(playersSorted[i].uuid);
+                try {
+                    playerSocket.emit('realtime_my_rank', { rank: i + 1 });
+                } catch (error) {
+                    Logger.error(error);
+                }
+            }
+        }
     }
 
     async syncGameRoomInfo() {
@@ -531,18 +559,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         game.status = 'end';
         await this.sessionInfoService.redGreenGameSave(game);
 
-        const playersFinished = players.filter((player) => player.state === 'FINISH');
-        const playersDead = players.filter((player) => player.state !== 'FINISH');
-
-        playersFinished.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
-            if (a.endtime < b.endtime) return -1;
-        });
-
-        playersDead.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
+        const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
             return a.distance - b.distance;
         });
-
-        const playersSorted = playersFinished.concat(playersDead);
 
         for (let i = 0; i < playersSorted.length; i++) {
             const playerSocket = this.uuidToSocket.get(playersSorted[i].uuid);
@@ -567,6 +586,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         setInterval(() => {
             this.syncGameRoomInfo();
         }, 1000);
+
+        setInterval(() => {
+            this.refreshPlayerRank();
+        }, 2000);
 
         setInterval(() => {
             this.checkInactiveClients();
