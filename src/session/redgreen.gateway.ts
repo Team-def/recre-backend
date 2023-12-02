@@ -360,7 +360,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         game.killer_mode = true;
         await this.sessionInfoService.redGreenGameSave(game);
 
-        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: game.killer_mode });
+        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: !game.killer_mode });
 
         client.emit('stop', { result: true });
     }
@@ -503,7 +503,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
 
             const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
-                return a.distance - b.distance;
+                return b.distance - a.distance;
             });
 
             for (let i = 0; i < playersSorted.length; i++) {
@@ -560,7 +560,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         await this.sessionInfoService.redGreenGameSave(game);
 
         const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
-            return a.distance - b.distance;
+            return b.distance - a.distance;
         });
 
         for (let i = 0; i < playersSorted.length; i++) {
