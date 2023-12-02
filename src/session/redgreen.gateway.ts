@@ -419,6 +419,28 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
     }
 
+    @SubscribeMessage('express_emotion')
+    async expressEmotion(client: Socket, payload: { room_id: string; emotion: string }) {
+        const { emotion } = payload;
+        const uuid = client.handshake.query.uuId.toString();
+        console.log('uuid: ', uuid)
+        const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+        console.log('player: ', player);
+        const game: RedGreenGame = (await player.room) as RedGreenGame;
+        console.log('game: ', game);
+        const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+
+        this.clientsLastActivity.set(uuid, {
+            lastActivity: Date.now(),
+        });
+
+        if (player === null || emotion === undefined) {
+            return;
+        }
+
+        hostSocket.emit('express_emotion', { emotion });
+    }
+
     async syncGameRoomInfo() {
         const games: RedGreenGame[] = await this.sessionInfoService.redGreenGameFindAll();
         // console.log('syncGameRoomInfo: ' + games);
