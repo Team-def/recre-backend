@@ -130,4 +130,15 @@ export class SessionInfoService {
             where: { uuid },
         });
     }
+
+    // 무궁화 꽃이 플레이어 정렬 조회
+    async redgreenGamePlayerSortedByMultipleConditions(room_id: number) {
+        return this.redGreenPlayerRepository.find({
+            where: { room: { room_id } },
+            order: {
+                distance: 'ASC',
+                endtime: 'DESC',
+            },
+        });
+    }
 }
