@@ -297,8 +297,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         room.status = 'playing';
         await this.sessionInfoService.redGreenGameSave(room);
         // 이제 호스트는 3,2,1 숫자를 세고 본 게임을 시작하게 된다.
-        this.server.to(room.room_id.toString()).emit('start_game', { result: true });
-        client.emit('start_game', { result: true });
+        const starttime = new Date();
+        this.server.to(room.room_id.toString()).emit('start_game', { result: true, starttime: starttime });
+        client.emit('start_game', { result: true, starttime: starttime });
     }
 
     @SubscribeMessage('im_ready')
@@ -584,6 +585,12 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         game.status = 'end';
         await this.sessionInfoService.redGreenGameSave(game);
 
+        const endtime = new Date();
+        players.forEach((player) => {
+            if (player.state == 'ALIVE') {
+                player.endtime = endtime;
+            }
+        });
         const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
             return b.distance - a.distance;
         });
