@@ -312,8 +312,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @returns no ack
      */
     @SubscribeMessage('run')
-    async run(client: Socket, payload: { shakeCount: number }) {
+    async run(client: Socket, payload: { shakeCount: number; latency?: number }) {
         const { shakeCount } = payload;
+        const latency = payload.latency || 0;
         const uuid = client.handshake.query.uuId.toString();
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
@@ -324,7 +325,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
             return;
         }
-        if (game.killer_mode === true) {
+        if (game.killer_mode === true && this.doesPlayerHaveToDie(game, latency)) {
             await this.youdie(player, game);
         } else {
             player.distance = shakeCount;
@@ -340,6 +341,20 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     /**
+     * 지연시간 기반 죽음판정 정책
+     */
+    private doesPlayerHaveToDie(game: RedGreenGame, latency: number): boolean {
+        const CONSTANT_MS = 100; // stop 메시지 날아온 시간으로부터 최소 인정시간
+        const admitTime = game.last_killer_time + CONSTANT_MS + latency;
+        const currentTime = performance.now();
+        Logger.debug(`[${game.room_id}] 현재시간: ${currentTime}, 죽음판정시간: ${admitTime}`, 'doesPlayerHaveToDie');
+        if (currentTime > admitTime) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 게임진행중 호스트가 마우스를 눌렀을때 날아가는 요청("다"영희뒤돌아봐)
      *
      * @param client host
@@ -348,7 +363,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     // @UseGuards(SessionGuard)
     @SubscribeMessage('stop')
     async stop(client: Socket, payload: { cur_time: Date }) {
-        const { cur_time } = payload;
         const uuid = client.handshake.query.uuId.toString();
         const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
         if (!host) {
@@ -359,6 +373,11 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return { result: false, message: '게임이 시작되지 않았습니다.' };
         }
         game.killer_mode = true;
+        game.last_killer_time = performance.now();
+        Logger.debug(
+            `[${game.room_id}] 영희가 고개를 돌렸습니다. 마지막으로 고개를 돌린 시간: ${game.last_killer_time}`,
+            'stop',
+        );
         await this.sessionInfoService.redGreenGameSave(game);
 
         this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: false });
