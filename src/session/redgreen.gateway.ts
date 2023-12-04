@@ -198,6 +198,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
             return;
         }
+        Logger.log(`${nickname}의 발행시간은 ${client.handshake.time} 입니다.`);
 
         const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
 
@@ -582,9 +583,29 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.hostDisconnect(uuId);
     }
 
+    private async updateLatency() {
+        const server_ts = performance.now();
+        const players: RedGreenPlayer[] = await this.sessionInfoService.redGreenGamePlayerFindAll();
+        for (const player of players) {
+            const playerSocket = this.uuidToSocket.get(player.uuid);
+            if (playerSocket) {
+                playerSocket.emit('ping', { server_ts }, ({ server_ts, client_ts }) => {
+                    const server_ack_ts = performance.now();
+                    Logger.verbose(`[${player.name}] server round trip time: ${server_ack_ts - server_ts}ms`);
+                    playerSocket.emit('pong', {
+                        server_ts,
+                        client_ts,
+                        server_ack_ts,
+                    });
+                });
+            }
+        }
+    }
+
     onModuleInit() {
         setInterval(() => {
             this.syncGameRoomInfo();
+            this.updateLatency();
         }, 1000);
 
         setInterval(() => {

@@ -131,6 +131,10 @@ export class SessionInfoService {
         });
     }
 
+    async redGreenGamePlayerFindAll(): Promise<RedGreenPlayer[]> {
+        return this.redGreenPlayerRepository.find();
+    }
+
     // 무궁화 꽃이 플레이어 정렬 조회
     async redgreenGamePlayerSortedByMultipleConditions(room_id: number) {
         return this.redGreenPlayerRepository.find({
