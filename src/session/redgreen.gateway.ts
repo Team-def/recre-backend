@@ -603,18 +603,19 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     async finish(game: RedGreenGame) {
         const hostSocket = this.uuidToSocket.get((await game.host).uuid);
-        let players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
+        const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
 
         game.status = 'end';
-        await this.sessionInfoService.redGreenGameSave(game);
 
         const end_time = new Date();
         const elapsed_time = end_time.getTime() - game.start_time.getTime();
         players.forEach((player) => {
-            if (player.state == 'ALIVE') {
+            if (player.state === 'ALIVE') {
                 player.elapsed_time = elapsed_time;
             }
         });
+        await this.sessionInfoService.redGreenGameSave(game);
+
         const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
             return b.distance - a.distance;
         });
