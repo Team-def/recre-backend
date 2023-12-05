@@ -141,7 +141,7 @@ export class SessionInfoService {
             where: { room: { room_id } },
             order: {
                 distance: 'ASC',
-                endtime: 'DESC',
+                // endtime: 'DESC',
             },
         });
     }
