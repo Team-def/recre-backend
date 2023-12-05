@@ -555,7 +555,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
             // Logger.debug(JSON.stringify(players, null, 4)); // stringify with 4 spaces at each level)
 
-            if (host_socket === undefined) return;
+            if (!host_socket) return;
             host_socket.emit('players_status', {
                 player_info: players,
             });
