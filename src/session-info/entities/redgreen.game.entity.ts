@@ -15,6 +15,12 @@ export class RedGreenGame extends Room {
     @Column({ type: 'boolean', nullable: false, default: false })
     killer_mode: boolean;
 
+    /**
+     * 영희가 마지막으로 고개를 돌린 시간 (performance)
+     */
+    @Column({ type: 'double', nullable: false, default: 0 })
+    last_killer_time: number;
+
     @Column({ type: 'integer', nullable: false, default: 0 })
     current_win_num: number;
 

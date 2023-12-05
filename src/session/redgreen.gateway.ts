@@ -198,6 +198,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
             return;
         }
+        Logger.log(`${nickname}의 발행시간은 ${client.handshake.time} 입니다.`);
 
         const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
 
@@ -313,19 +314,20 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @returns no ack
      */
     @SubscribeMessage('run')
-    async run(client: Socket, payload: { shakeCount: number }) {
+    async run(client: Socket, payload: { shakeCount: number; latency?: number }) {
         const { shakeCount } = payload;
+        const latency = payload.latency || 0;
         const uuid = client.handshake.query.uuId.toString();
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
-        console.log(game);
+        // console.log(game);
         const hostSocket = this.uuidToSocket.get((await game.host).uuid);
 
         if (game.status !== 'playing') {
             client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
             return;
         }
-        if (game.killer_mode === true) {
+        if (game.killer_mode === true && this.doesPlayerHaveToDie(game, latency)) {
             await this.youdie(player, game);
         } else {
             player.distance = shakeCount;
@@ -341,6 +343,21 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     }
 
     /**
+     * 지연시간 기반 죽음판정 정책
+     */
+    private doesPlayerHaveToDie(game: RedGreenGame, latency: number): boolean {
+        const CONSTANT_MS = 200; // stop 메시지 날아온 시간으로부터 최소 인정시간
+        const admitTime = game.last_killer_time + CONSTANT_MS + latency;
+        const currentTime = performance.now();
+        if (currentTime > admitTime) {
+            Logger.debug(`${currentTime - admitTime}ms 만큼 늦었습니다. (latency: ${latency})`, 'doesPlayerHaveToDie');
+            return true;
+        }
+        Logger.debug(`${admitTime - currentTime}ms 만큼 빨랐습니다. (latency: ${latency})`, 'doesPlayerHaveToDie');
+        return false;
+    }
+
+    /**
      * 게임진행중 호스트가 마우스를 눌렀을때 날아가는 요청("다"영희뒤돌아봐)
      *
      * @param client host
@@ -349,7 +366,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     // @UseGuards(SessionGuard)
     @SubscribeMessage('stop')
     async stop(client: Socket, payload: { cur_time: Date }) {
-        const { cur_time } = payload;
         const uuid = client.handshake.query.uuId.toString();
         const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
         if (!host) {
@@ -360,6 +376,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return { result: false, message: '게임이 시작되지 않았습니다.' };
         }
         game.killer_mode = true;
+        game.last_killer_time = performance.now();
         await this.sessionInfoService.redGreenGameSave(game);
 
         this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: false });
@@ -508,7 +525,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         if (games.length === 0) return;
         for (const game of games) {
             if (game.status !== 'playing') continue;
-            const host: Host = await game.host;
             const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
 
             const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
@@ -516,7 +532,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             });
 
             for (let i = 0; i < playersSorted.length; i++) {
-                const playerSocket = this.uuidToSocket.get(playersSorted[i].uuid);
+                const player = playersSorted[i];
+                const playerSocket = this.uuidToSocket.get(player.uuid);
                 try {
                     playerSocket.emit('realtime_my_rank', { rank: i + 1 });
                 } catch (error) {
@@ -538,7 +555,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
             // Logger.debug(JSON.stringify(players, null, 4)); // stringify with 4 spaces at each level)
 
-            if (host_socket === undefined) return;
+            if (!host_socket) return;
             host_socket.emit('players_status', {
                 player_info: players,
             });
@@ -594,6 +611,11 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async endGame(client: Socket, payload: any) {
         const uuId = client.handshake.query.uuId.toString();
         this.hostDisconnect(uuId);
+    }
+
+    @SubscribeMessage('ping')
+    ping(client: Socket, payload: { start: number }) {
+        return { start: payload.start };
     }
 
     onModuleInit() {
