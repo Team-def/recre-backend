@@ -346,14 +346,14 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * 지연시간 기반 죽음판정 정책
      */
     private doesPlayerHaveToDie(game: RedGreenGame, latency: number): boolean {
-        const CONSTANT_MS = 100; // stop 메시지 날아온 시간으로부터 최소 인정시간
+        const CONSTANT_MS = 200; // stop 메시지 날아온 시간으로부터 최소 인정시간
         const admitTime = game.last_killer_time + CONSTANT_MS + latency;
         const currentTime = performance.now();
         if (currentTime > admitTime) {
-            Logger.debug(`${currentTime - admitTime}ms 만큼 늦었습니다.`, 'doesPlayerHaveToDie');
+            Logger.debug(`${currentTime - admitTime}ms 만큼 늦었습니다. (latency: ${latency})`, 'doesPlayerHaveToDie');
             return true;
         }
-        Logger.debug(`${admitTime - currentTime}ms 만큼 빨랐습니다.`, 'doesPlayerHaveToDie');
+        Logger.debug(`${admitTime - currentTime}ms 만큼 빨랐습니다. (latency: ${latency})`, 'doesPlayerHaveToDie');
         return false;
     }
 
