@@ -377,10 +377,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }
         game.killer_mode = true;
         game.last_killer_time = performance.now();
-        Logger.debug(
-            `[${game.room_id}] 영희가 고개를 돌렸습니다. 마지막으로 고개를 돌린 시간: ${game.last_killer_time}`,
-            'stop',
-        );
         await this.sessionInfoService.redGreenGameSave(game);
 
         this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: false });
