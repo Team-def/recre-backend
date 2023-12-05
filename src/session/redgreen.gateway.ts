@@ -294,8 +294,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             return;
         }
         room.status = 'playing';
+        room.start_time = new Date();
         await this.sessionInfoService.redGreenGameSave(room);
         // 이제 호스트는 3,2,1 숫자를 세고 본 게임을 시작하게 된다.
+
         this.server.to(room.room_id.toString()).emit('start_game', { result: true });
         client.emit('start_game', { result: true });
     }
@@ -413,21 +415,23 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }
 
         player.state = 'DEAD';
-        player.endtime = new Date();
+        const end_time = new Date();
+        player.elapsed_time = end_time.getTime() - game.start_time.getTime();
         game.current_alive_num -= 1;
         await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
+
         clientSocket.emit('youdie', {
             result: true,
             name: player.name,
             distance: player.distance,
-            endtime: player.endtime,
+            elapsed_time: player.elapsed_time,
         });
         hostSocket.emit('youdie', {
             result: true,
             name: player.name,
             distance: player.distance,
-            endtime: player.endtime,
+            elapsed_time: player.elapsed_time,
         });
     }
 
@@ -453,23 +457,25 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }
 
         player.state = 'FINISH';
-        player.endtime = new Date();
+        const end_time = new Date();
+        player.elapsed_time = end_time.getTime() - game.start_time.getTime();
         player.distance = game.length + game.win_num - game.current_win_num;
         game.current_win_num += 1;
         game.current_alive_num -= 1;
         await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
+
         clientsocket.emit('touchdown', {
             result: true,
             rank: game.current_win_num,
             name: player.name,
-            endtime: player.endtime,
+            elapsed_time: player.elapsed_time,
         });
         host_socket.emit('touchdown', {
             result: true,
             rank: game.current_win_num,
             name: player.name,
-            endtime: player.endtime,
+            elapsed_time: player.elapsed_time,
         });
     }
 
@@ -557,9 +563,17 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     async finish(game: RedGreenGame) {
         const hostSocket = this.uuidToSocket.get((await game.host).uuid);
-        let players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
+        const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
 
         game.status = 'end';
+
+        const end_time = new Date();
+        const elapsed_time = end_time.getTime() - game.start_time.getTime();
+        players.forEach((player) => {
+            if (player.state === 'ALIVE') {
+                player.elapsed_time = elapsed_time;
+            }
+        });
         await this.sessionInfoService.redGreenGameSave(game);
 
         const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {

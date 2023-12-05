@@ -13,8 +13,8 @@ export class RedGreenPlayer extends Player {
     state: string;
 
     /**
-     * 플레이어의 게임플레이가 종료된 시간 (사망, 완주 시간)
+     * 생존시간: 플레이어의 게임플레이가 종료된 시간 (사망, 완주 시간) - 게임 시작시간
      */
-    @Column({ type: 'datetime', nullable: true, default: 0 })
-    endtime: Date;
+    @Column({ type: 'integer', nullable: true, default: 0 })
+    elapsed_time: number;
 }

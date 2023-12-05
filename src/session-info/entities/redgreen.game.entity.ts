@@ -20,4 +20,7 @@ export class RedGreenGame extends Room {
 
     @Column({ type: 'integer', nullable: false, default: 0 })
     current_alive_num: number;
+
+    @Column({ type: 'datetime', nullable: true, default: 0 })
+    start_time: Date;
 }
