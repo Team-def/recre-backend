@@ -534,7 +534,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
                 const playerSocket = this.uuidToSocket.get(player.uuid);
                 try {
                     playerSocket.emit('realtime_my_rank', { rank: i + 1 });
-                    this.updateLatency(player);
                 } catch (error) {
                     // Logger.error(error);
                 }
@@ -604,21 +603,9 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         this.hostDisconnect(uuId);
     }
 
-    private async updateLatency(player: RedGreenPlayer) {
-        const server_ts = performance.now();
-        const playerSocket = this.uuidToSocket.get(player.uuid);
-
-        if (playerSocket) {
-            playerSocket.emit('ping', { server_ts }, ({ server_ts, client_ts }) => {
-                const server_ack_ts = performance.now();
-                Logger.verbose(`[${player.name}] server round trip time: ${server_ack_ts - server_ts}ms`);
-                playerSocket.emit('pong', {
-                    server_ts,
-                    client_ts,
-                    server_ack_ts,
-                });
-            });
-        }
+    @SubscribeMessage('ping')
+    ping(client: Socket, payload: { start: number }) {
+        return { start: payload.start };
     }
 
     onModuleInit() {
