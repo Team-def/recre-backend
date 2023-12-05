@@ -570,6 +570,24 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         }
     }
 
+    @SubscribeMessage('pre_player_status')
+    async prePlayerStatus(hostSocket: Socket) {
+        const uuid = hostSocket.handshake.query.uuId.toString();
+        const host = await this.sessionInfoService.hostFindByUuid(uuid);
+        if (!host) {
+            Logger.error('호스트가 아닙니다.');
+            return { result: false, message: '호스트가 아닙니다.' };
+        }
+        const game: RedGreenGame = (await host.room) as RedGreenGame;
+        if (!game) {
+            Logger.error('게임이 존재하지 않습니다.');
+            return { result: false, message: '게임이 존재하지 않습니다.' };
+        }
+        const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
+
+        hostSocket.emit('pre_player_status', { pre_player_info: players });
+    }
+
     @SubscribeMessage('game_finished')
     async gameFinished(client: Socket, payload: any) {
         const uuid = client.handshake.query.uuId.toString();
