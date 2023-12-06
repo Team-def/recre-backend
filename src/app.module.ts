@@ -46,8 +46,8 @@ import { CatchPlayer } from './session-info/entities/catch.player.entitiy';
             // ----------------- 추가 start
             name: 'sqlite', // - DB 이름
             type: 'sqlite', // - DB 종류
-            // database: ':memory:', // - DB 파일 이름
-            database: './recre.db', // - DB 파일 이름
+            database: ':memory:', // - DB 파일 이름
+            // database: './recre.db', // - DB 파일 이름
             autoLoadEntities: true, // - 구동시 entity파일 자동 로드
             synchronize: true, // - 서비스 구동시 entity와 디비의 테이블 싱크 개발만 할것
             logging: false, // - orm 사용시 로그 남기기
