@@ -639,7 +639,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     onModuleInit() {
         setInterval(() => {
             this.syncGameRoomInfo();
-        }, 1000);
+        }, 300);
 
         setInterval(() => {
             this.refreshPlayerRank();
