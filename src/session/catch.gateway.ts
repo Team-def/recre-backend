@@ -59,14 +59,13 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             console.log('기존 접속자');
             const oldSocket = this.uuidToSocket.get(uuId.toString());
             if (oldSocket !== null) oldSocket.disconnect();
-            let player: CatchPlayer;
             this.sessionInfoService.catchGamePlayerFindByUuid(uuId).then((res) => {
-                player = res;
+                const player = res;
+                if (player) {
+                    client.join(player.room.toString());
+                }
+                this.uuidToSocket.set(uuId, client);
             });
-            if (player) {
-                client.join(player.room.toString());
-            }
-            this.uuidToSocket.set(uuId, client);
         }
         this.socketTouuid.set(client, uuId);
     }
@@ -267,7 +266,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (room !== null) {
             if (room.current_user_num === room.user_num || room.status !== 'wait') {
                 Logger.log(room.current_user_num + '방에 참여할 수 없습니다.');
-                client.emit('ready', {result: false,message: '방에 참여할 수 없습니다.',});
+                client.emit('ready', { result: false, message: '방에 참여할 수 없습니다.' });
                 return;
             }
         } else {
