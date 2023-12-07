@@ -1,73 +1,131 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+## RecRe
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+- \[WHY\] 우리 모두는 관중들의 이목을 집중시키고 분위기를 환기할 수 있는 힘을 가지고 있습니다.
+- \[HOW\] Team-def는 별도의 지식 없이도 웹 브라우저만으로 쉽게 레크리에이션을 진행할 수 있는 서비스를 고안하였으며,
+- \[WHAT\] 최대 100명의 관중들과 온/오프라인에서 실시간으로 소통할 수 있는 서비스 RecRe를 만들었습니다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Screenshots
 
-## Description
+- Catch My Mind
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/087356a6-d506-4a86-94b3-c4fd178cbf31)
 
-## Installation
+- Red Light, Green Light
 
-```bash
-$ npm install
+![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/884b6614-6648-4cd7-920e-9b80771537ce)
+
+## Architectures
+
+![image](https://github.com/Team-def/recre-backend/assets/18757823/c158d24b-fb93-453e-bdff-614b42069145)
+
+- Backend
+  - 호스트 유저 정보 관리: PostgreSQL
+  - 실시간 연결: Socket.io
+  - 플레이어 상태 관리: SQLite (In Memory)
+  - 백엔드 업무로직: NestJS
+- Frontend
+  - 프레임워크: NextJS w/ ReactJS
+  - 상태관리: Jotai
+  - 무궁화꽃이 피었습니다 게임: Three.JS
+
+## Build with NestJS
+
+먼저 필요한 의존성들을 설치합니다.
+
+```
+npm i
 ```
 
-## Running the app
+다음으로 환경변수들을 `.env` 파일에 정의합니다. 다음 변수들이 필요합니다:
 
-```bash
-# development
-$ npm run start
+```
+# 호스트 유저정보를 저장할 DB서비스
 
-# watch mode
-$ npm run start:dev
+DB_HOST=
+DB_USER_PASSWORD
+DB_USER_NAME
+DB_DATABASE
+DB_PORT
 
-# production mode
-$ npm run start:prod
+# 구글 소셜로그인을 위해 필요한 클라이언트 ID
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=
+
+KAKAO_CLIENT_ID=
+KAKAO_CLIENT_SECRET=
+KAKAO_CALLBACK_URL=
+
+NAVER_CLIENT_ID=
+NAVER_CLIENT_SECRET=
+NAVER_CALLBACK_URL=
+
+# 로그인된 호스트들을 인가하기 위한 JWT 토큰과 관련한 정보
+
+JWT_ACCESS_TOKEN_SECRET=
+JWT_ACCESS_TOKEN_EXPIRATION_TIME=
+JWT_REFRESH_TOKEN_SECRET=
+JWT_REFRESH_TOKEN_EXPIRATION_TIME=
+
+# 클라이언트 서버의 주소
+
+CLIENT_URL=
+
+# 프론트/백엔드 공통적으로 사용될 도메인 이름, 예를 들어 www.recre.com이 있다면, recre.com이 DOMAIN입니다
+
+DOMAIN=
+
+# 본 서비스가 동작할때 Listen할 포트번호
+
+LISTEN_PORT=
 ```
 
-## Test
+그리고 다음 명령어를 통해 각각 개발용과 프로덕션용 모드로 실행할 수 있습니다. NestJS 커맨드에 대한 자세한 설명은 [공식문서](https://docs.nestjs.com/first-steps)를 참고하세요.
 
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+```
+npm run start:dev
+npm run start:prod
 ```
 
-## Support
+## Project Directory Structure
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+NestJS는 Controller & Service 구조로 이루어져 있으며, 각각의 컴포넌트들이 Module 단위로 분리되어 있습니다. 아래 Tree는 실제 파일들의 구조를 간략하게 소개한 텍스트입니다.
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+```
+src
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+├── auth # 호스트 사용자 인증 / 인가 모듈
+│   ├── auth.controller.ts
+│   ├── auth.module.ts
+│   └── auth.service.ts
+├── main.ts
+├── session # 캐치마인드, 무궁화꽃이 피었습니다 게임로직 & Socket.io 인터페이스
+│   ├── catch.gateway.ts
+│   ├── redgreen.gateway.ts
+│   ├── session.guard.ts
+│   ├── session.module.ts
+│   └── socket.extension.ts
+├── session-info # 게임, 플레이어, 호스트 상태를 관리하는 모듈
+│   ├── entities
+│   │   ├── catch.game.entity.ts
+│   │   ├── catch.player.entitiy.ts
+│   │   ├── host.entity.ts
+│   │   ├── player.entity.ts
+│   │   ├── redgreen.game.entity.ts
+│   │   ├── redgreen.player.entity.ts
+│   │   └── room.entity.ts
+│   ├── session-info.module.ts
+│   └── session-info.service.ts
+└── user # 호스트 정보를 관리하는 모듈
+    ├── dto
+    │   ├── create-user.dto.ts
+    │   └── update-user.dto.ts
+    ├── entities
+    │   └── user.entity.ts
+    ├── user.controller.ts
+    ├── user.module.ts
+    └── user.service.ts
+```
