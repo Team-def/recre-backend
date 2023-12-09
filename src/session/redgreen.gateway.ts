@@ -53,16 +53,15 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             //기존 접속자
             console.log('기존 접속자 소켓 초기화');
             oldSocket.disconnect();
-            this.sessionInfoService.catchGamePlayerFindByUuid(uuId).then(async (player) => {
+            this.sessionInfoService.redGreenGamePlayerFindByUuid(uuId).then(async (player) => {
                 if (player) {
-                    Logger.debug(`기존 플레이어 "${player.name}" 재접속`);
+                    Logger.debug(`기존 플레이어 "${player.name}" 재접속`, 'handleConnection');
                     client.join((await player.room).room_id.toString());
                 }
             });
         }
         this.uuidToSocket.set(uuId, client);
         this.socketToUuid.set(client, uuId);
-
     }
 
     async handleDisconnect(client: Socket) {
