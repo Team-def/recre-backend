@@ -50,23 +50,22 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        if (!this.uuidToSocket.has(uuId)) {
+        const oldSocket = this.uuidToSocket.get(uuId);
+        if (!oldSocket) {
             //신규 접속자
             console.log('신규 접속자');
-            this.uuidToSocket.set(uuId, client);
         } else {
             //기존 접속자
-            console.log('기존 접속자');
-            const oldSocket = this.uuidToSocket.get(uuId.toString());
-            if (oldSocket !== null) oldSocket.disconnect();
-            this.sessionInfoService.catchGamePlayerFindByUuid(uuId).then((res) => {
-                const player = res;
+            console.log('기존 접속자 소켓 초기화');
+            oldSocket.disconnect();
+            this.sessionInfoService.catchGamePlayerFindByUuid(uuId).then(async (player) => {
                 if (player) {
-                    client.join(player.room.toString());
+                    Logger.debug(`기존 플레이어 "${player.name}" 재접속`);
+                    client.join((await player.room).room_id.toString());
                 }
-                this.uuidToSocket.set(uuId, client);
             });
         }
+        this.uuidToSocket.set(uuId, client);
         this.socketTouuid.set(client, uuId);
     }
 
