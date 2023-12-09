@@ -33,6 +33,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     private uuidToSocket = new Map<string, Socket>();
     private socketToUuid = new Map<Socket, string>();
+    private roomToWinNum = new Map<number, number>();
+    private roomToAliveNum = new Map<number, number>();
 
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
     private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
@@ -171,7 +173,8 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         redGreenGame.length = goalDistance;
         redGreenGame.win_num = winnerNum;
         redGreenGame.room_id = host.host_id;
-        redGreenGame.current_win_num = 0;
+        this.roomToWinNum.set(redGreenGame.room_id, 0);
+        this.roomToAliveNum.set(redGreenGame.room_id, 0);
 
         host.room = Promise.resolve(redGreenGame);
         console.log(host);
@@ -237,7 +240,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         client.join(room_id.toString());
 
         room.current_user_num += 1;
-        room.current_alive_num += 1;
+        this.roomToAliveNum.set(room_id, room.current_user_num);
         await this.sessionInfoService.redGreenGameSave(room);
 
         client.emit('ready', {
@@ -320,9 +323,14 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const uuid = client.handshake.query.uuId.toString();
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
-        // console.log(game);
-        const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+        const current_win_num = this.roomToWinNum.get(game.room_id);
+        if (current_win_num >= game.win_num) {
+            return;
+        }
+        const current_alive_num = this.roomToAliveNum.get(game.room_id);
 
+        // console.log(game);
+        // const hostSocket = this.uuidToSocket.get((await game.host).uuid);
         if (game.status !== 'playing') {
             client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
             return;
@@ -332,12 +340,15 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         } else {
             player.distance = shakeCount;
             await this.sessionInfoService.redGreenGamePlayerSave(player);
-            hostSocket.emit('run', { uuid, shakeCount });
+            // hostSocket.emit('run', { uuid, shakeCount });
             if (player.distance >= game.length) {
                 await this.touchdown(player, game);
             }
         }
-        if (game.current_alive_num <= 0 || game.current_win_num >= game.win_num) {
+        if (current_alive_num <= 0 || current_win_num >= game.win_num) {
+            Logger.log(
+                `[finish: ${player.uuid}], cur_win_num: ${current_win_num}, cur_alive_num: ${current_alive_num}`,
+            );
             await this.finish(game);
         }
     }
@@ -434,10 +445,12 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         player.state = 'DEAD';
         const end_time = new Date();
         player.elapsed_time = end_time.getTime() - game.start_time.getTime();
-        game.current_alive_num -= 1;
-        await this.sessionInfoService.redGreenGameSave(game);
+        let current_alive_num = this.roomToAliveNum.get(game.room_id);
+        current_alive_num -= 1;
+        this.roomToAliveNum.set(game.room_id, current_alive_num);
+        // await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
-
+        Logger.log(`[youdie: ${player.uuid}], cur_alive_num: ${current_alive_num}`);
         clientSocket.emit('youdie', {
             result: true,
             name: player.name,
@@ -454,6 +467,12 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     // @SubscribeMessage('touchdown')
     async touchdown(player: RedGreenPlayer, game: RedGreenGame) {
+        let current_win_num = this.roomToWinNum.get(game.room_id);
+        if (current_win_num === game.win_num) {
+            return;
+        }
+        current_win_num += 1;
+        this.roomToWinNum.set(game.room_id, current_win_num);
         if (!player) {
             Logger.error(player.name + '는 게임 참가자가 아닙니다.', 'touchdown');
             return { result: false, message: player.name + '는 게임 참가자가 아닙니다.' };
@@ -476,21 +495,27 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         player.state = 'FINISH';
         const end_time = new Date();
         player.elapsed_time = end_time.getTime() - game.start_time.getTime();
-        player.distance = game.length + game.win_num - game.current_win_num;
-        game.current_win_num += 1;
-        game.current_alive_num -= 1;
-        await this.sessionInfoService.redGreenGameSave(game);
-        await this.sessionInfoService.redGreenGamePlayerSave(player);
 
+        player.distance = game.length + game.win_num - current_win_num;
+
+
+        let current_alive_num = this.roomToAliveNum.get(game.room_id);
+        current_alive_num -= 1;
+        this.roomToAliveNum.set(game.room_id, current_alive_num);
+        // await this.sessionInfoService.redGreenGameSave(game);
+        await this.sessionInfoService.redGreenGamePlayerSave(player);
+        Logger.log(
+            `[touchdown: ${player.uuid}], cur_win_num: ${current_win_num}, cur_alive_num: ${current_alive_num}, distance: ${player.distance}`,
+        );
         clientsocket.emit('touchdown', {
             result: true,
-            rank: game.current_win_num,
+            rank: current_win_num,
             name: player.name,
             elapsed_time: player.elapsed_time,
         });
         host_socket.emit('touchdown', {
             result: true,
-            rank: game.current_win_num,
+            rank: current_win_num,
             name: player.name,
             elapsed_time: player.elapsed_time,
         });

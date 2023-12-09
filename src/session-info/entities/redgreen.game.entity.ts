@@ -21,12 +21,6 @@ export class RedGreenGame extends Room {
     @Column({ type: 'double', nullable: false, default: 0 })
     last_killer_time: number;
 
-    @Column({ type: 'integer', nullable: false, default: 0 })
-    current_win_num: number;
-
-    @Column({ type: 'integer', nullable: false, default: 0 })
-    current_alive_num: number;
-
     @Column({ type: 'datetime', nullable: true, default: 0 })
     start_time: Date;
 }
