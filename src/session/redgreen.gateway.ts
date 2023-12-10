@@ -322,6 +322,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             const latency = payload.latency || 0;
             const uuid = client.handshake.query.uuId.toString();
             const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+            if (!player || player.state !== 'ALIVE') {
+                return;
+            }
+
             const game: RedGreenGame = (await player.room) as RedGreenGame;
             // console.log(game);
             const hostSocket = this.uuidToSocket.get((await game.host).uuid);
@@ -483,6 +487,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         player.distance = game.length + game.win_num - game.current_win_num;
         game.current_win_num += 1;
         game.current_alive_num -= 1;
+        Logger.debug(`${player.uuid}이 골인했습니다. 현재 current_win_num: ${game.current_win_num}`, 'touchdown');
         await this.sessionInfoService.redGreenGameSave(game);
         await this.sessionInfoService.redGreenGamePlayerSave(player);
 
@@ -529,14 +534,12 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         if (games.length === 0) return;
         for (const game of games) {
             if (game.status !== 'playing') continue;
-            const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
+            const players: RedGreenPlayer[] = await this.sessionInfoService.redGreenGamePlayerSortByDistance(
+                game.room_id,
+            );
 
-            const playersSorted = players.sort((a: RedGreenPlayer, b: RedGreenPlayer) => {
-                return b.distance - a.distance;
-            });
-
-            for (let i = 0; i < playersSorted.length; i++) {
-                const player = playersSorted[i];
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i];
                 const playerSocket = this.uuidToSocket.get(player.uuid);
                 try {
                     playerSocket.emit('realtime_my_rank', { rank: i + 1 });
