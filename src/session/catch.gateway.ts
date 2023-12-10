@@ -16,6 +16,8 @@ import { CatchPlayer } from 'src/session-info/entities/catch.player.entitiy';
 import { Host } from 'src/session-info/entities/host.entity';
 import { CatchGame } from 'src/session-info/entities/catch.game.entity';
 import { SocketExtension } from './socket.extension';
+import * as AsyncLock from 'async-lock';
+
 @WebSocketGateway({
     namespace: 'catch', /// TODO - namespace는 나중에 정의할 것
     transports: ['websocket'],
@@ -40,6 +42,8 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // < uuid, socket > uuid로 소켓 접근
     private uuidToSocket = new Map<string, Socket>();
+
+    private lock = new AsyncLock();
 
     // 소켓 접속
     handleConnection(client: Socket) {
@@ -252,80 +256,82 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //유저 ready
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: string; nickname: string }) {
-        const uuId = client.handshake.query.uuId.toString();
-        const { room_id, nickname } = payload;
-        if (room_id === undefined || nickname === undefined) {
-            console.log(room_id);
-            Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
-            return;
-        }
-
-        const room: CatchGame = await this.sessionInfoService.catchGameRoomFindByRoomId(Number(room_id));
-
-        if (room !== null) {
-            if (room.current_user_num === room.user_num || room.status !== 'wait') {
-                Logger.log(room.current_user_num + '방에 참여할 수 없습니다.');
-                client.emit('ready', { result: false, message: '방에 참여할 수 없습니다.' });
+        this.lock.acquire('ready', async () => {
+            const uuId = client.handshake.query.uuId.toString();
+            const { room_id, nickname } = payload;
+            if (room_id === undefined || nickname === undefined) {
+                console.log(room_id);
+                Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
                 return;
             }
-        } else {
-            console.log(`${room_id}번 방이 존재하지 않습니다.`);
-            client.emit('ready', {
-                result: false,
-                message: '방이 존재하지 않습니다.',
+
+            const room: CatchGame = await this.sessionInfoService.catchGameRoomFindByRoomId(Number(room_id));
+
+            if (room !== null) {
+                if (room.current_user_num === room.user_num || room.status !== 'wait') {
+                    Logger.log(room.current_user_num + '방에 참여할 수 없습니다.');
+                    client.emit('ready', { result: false, message: '방에 참여할 수 없습니다.' });
+                    return;
+                }
+            } else {
+                console.log(`${room_id}번 방이 존재하지 않습니다.`);
+                client.emit('ready', {
+                    result: false,
+                    message: '방이 존재하지 않습니다.',
+                });
+                return;
+            }
+
+            //플레이어 생성
+            const player: CatchPlayer = new CatchPlayer();
+
+            try {
+                player.uuid = uuId;
+                player.name = nickname;
+                player.room = Promise.resolve(room);
+                await this.sessionInfoService.catchGamePlayerInsert(player);
+            } catch (error) {
+                Logger.log('이미 참가중입니다.');
+                client.emit('ready', {
+                    result: false,
+                    message: '이미 참가중입니다.',
+                });
+                return;
+            }
+
+            Logger.log(
+                '게임 참가자: ' +
+                    nickname +
+                    ' 룸 번호: ' +
+                    room_id +
+                    ' 총 참가 인원: ' +
+                    room.user_num +
+                    ' 현재 참가 인원: ' +
+                    room.current_user_num,
+            );
+
+            // 마지막 활동시간 갱신
+            this.clientsLastActivity.set(uuId, {
+                lastActivity: Date.now(),
             });
-            return;
-        }
 
-        //플레이어 생성
-        const player: CatchPlayer = new CatchPlayer();
+            // 방에 참가
+            Logger.log(nickname + ': ' + room_id + '에 게임 참가: ');
+            room.current_user_num++;
+            await this.sessionInfoService.catchGameRoomSave(room);
 
-        try {
-            player.uuid = uuId;
-            player.name = nickname;
-            player.room = Promise.resolve(room);
-            await this.sessionInfoService.catchGamePlayerInsert(player);
-        } catch (error) {
-            Logger.log('이미 참가중입니다.');
+            client.join(room_id.toString());
             client.emit('ready', {
-                result: false,
-                message: '이미 참가중입니다.',
+                result: true,
+                message: '게임에 참가하였습니다.',
             });
-            return;
-        }
 
-        Logger.log(
-            '게임 참가자: ' +
-                nickname +
-                ' 룸 번호: ' +
-                room_id +
-                ' 총 참가 인원: ' +
-                room.user_num +
-                ' 현재 참가 인원: ' +
-                room.current_user_num,
-        );
-
-        // 마지막 활동시간 갱신
-        this.clientsLastActivity.set(uuId, {
-            lastActivity: Date.now(),
-        });
-
-        // 방에 참가
-        Logger.log(nickname + ': ' + room_id + '에 게임 참가: ');
-        room.current_user_num++;
-        await this.sessionInfoService.catchGameRoomSave(room);
-
-        client.join(room_id.toString());
-        client.emit('ready', {
-            result: true,
-            message: '게임에 참가하였습니다.',
-        });
-
-        // 호스트에게 플레이어 추가 알림
-        const hostSocket = this.uuidToSocket.get((await room.host).uuid.toString());
-        hostSocket.emit('player_list_add', {
-            player_cnt: room.current_user_num,
-            nickname: nickname,
+            // 호스트에게 플레이어 추가 알림
+            const hostSocket = this.uuidToSocket.get((await room.host).uuid.toString());
+            hostSocket.emit('player_list_add', {
+                player_cnt: room.current_user_num,
+                nickname: nickname,
+            });
         });
     }
 
