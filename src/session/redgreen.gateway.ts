@@ -34,14 +34,14 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     private uuidToSocket = new Map<string, Socket>();
     private socketToUuid = new Map<Socket, string>();
-    private runLock = new AsyncLock();
+    private lock = new AsyncLock();
 
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
     private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
 
-    handleConnection(client: Socket) {
+    async handleConnection(client: Socket) {
         const uuId = client.handshake.query.uuId.toString();
-        console.log('캐치게임 클라이언트 접속 로그: ', uuId);
+        // console.log('캐치게임 클라이언트 접속 로그: ', uuId);
         if (uuId === undefined) {
             client.disconnect();
             return;
@@ -190,68 +190,70 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     @SubscribeMessage('ready')
     async ready(client: Socket, payload: { room_id: number; nickname: string }) {
-        const uuid = client.handshake.query.uuId.toString();
-        Logger.log('레드그린 클라이언트 payload: ' + JSON.stringify(payload, null, 4), 'READY');
-        const { room_id, nickname } = payload;
-        if (room_id === undefined || nickname === undefined) {
-            console.log(room_id);
-            Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
-            return;
-        }
-        Logger.log(`${nickname}의 발행시간은 ${client.handshake.time} 입니다.`);
-
-        const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
-
-        if (room !== null) {
-            if (room.current_user_num === room.user_num || room.status !== 'wait') {
-                Logger.log(room.current_user_num + '방에 참여할 수 없습니다.');
-                client.emit('ready', { result: false, message: '방에 참여할 수 없습니다.' });
+        this.lock.acquire('ready', async () => {
+            const uuid = client.handshake.query.uuId.toString();
+            Logger.log('레드그린 클라이언트 payload: ' + JSON.stringify(payload, null, 4), 'READY');
+            const { room_id, nickname } = payload;
+            if (room_id === undefined || nickname === undefined) {
+                console.log(room_id);
+                Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
                 return;
             }
-        } else {
-            console.log(`${room_id}번 방이 존재하지 않습니다.`);
+            Logger.log(`${nickname}의 발행시간은 ${client.handshake.time} 입니다.`);
+
+            const room: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId(room_id);
+
+            if (room) {
+                if (room.current_user_num === room.user_num || room.status !== 'wait') {
+                    Logger.log(room.current_user_num + '방에 참여할 수 없습니다.');
+                    client.emit('ready', { result: false, message: '방에 참여할 수 없습니다.' });
+                    return;
+                }
+            } else {
+                console.log(`${room_id}번 방이 존재하지 않습니다.`);
+                client.emit('ready', {
+                    result: false,
+                    message: '방이 존재하지 않습니다.',
+                });
+                return;
+            }
+
+            //플레이어 생성
+            const player: RedGreenPlayer = new RedGreenPlayer();
+            try {
+                player.uuid = uuid;
+                player.name = nickname;
+                player.room = Promise.resolve(room);
+                await this.sessionInfoService.redGreenGamePlayerInsert(player);
+            } catch (error) {
+                Logger.log('이미 참가중입니다.');
+                client.emit('ready', {
+                    result: false,
+                    message: '이미 참가중입니다.',
+                });
+                return;
+            }
+
+            // 플레이어 소켓 room 등록
+            client.join(room_id.toString());
+
+            room.current_user_num += 1;
+            room.current_alive_num += 1;
+            await this.sessionInfoService.redGreenGameSave(room);
+
             client.emit('ready', {
-                result: false,
-                message: '방이 존재하지 않습니다.',
+                result: true,
+                message: '🆗',
+                win_num: room.win_num,
+                total_num: room.user_num,
+                length: room.length,
             });
-            return;
-        }
-
-        //플레이어 생성
-        const player: RedGreenPlayer = new RedGreenPlayer();
-        try {
-            player.uuid = uuid;
-            player.name = nickname;
-            player.room = Promise.resolve(room);
-            await this.sessionInfoService.redGreenGamePlayerInsert(player);
-        } catch (error) {
-            Logger.log('이미 참가중입니다.');
-            client.emit('ready', {
-                result: false,
-                message: '이미 참가중입니다.',
+            const host = await this.sessionInfoService.hostFindByRoomId(room_id);
+            const host_socket = this.uuidToSocket.get(host.uuid);
+            host_socket.emit('player_list_add', {
+                player_cnt: room.current_user_num,
+                name: nickname,
             });
-            return;
-        }
-
-        // 플레이어 소켓 room 등록
-        client.join(room_id.toString());
-
-        room.current_user_num += 1;
-        room.current_alive_num += 1;
-        await this.sessionInfoService.redGreenGameSave(room);
-
-        client.emit('ready', {
-            result: true,
-            message: '🆗',
-            win_num: room.win_num,
-            total_num: room.user_num,
-            length: room.length,
-        });
-        const host = await this.sessionInfoService.hostFindByRoomId(room_id);
-        const host_socket = this.uuidToSocket.get(host.uuid);
-        host_socket.emit('player_list_add', {
-            player_cnt: room.current_user_num,
-            name: nickname,
         });
     }
 
@@ -315,7 +317,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      */
     @SubscribeMessage('run')
     async run(client: Socket, payload: { shakeCount: number; latency?: number }) {
-        this.runLock.acquire('run', async () => {
+        this.lock.acquire('run', async () => {
             const { shakeCount } = payload;
             const latency = payload.latency || 0;
             const uuid = client.handshake.query.uuId.toString();
@@ -502,11 +504,11 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async expressEmotion(client: Socket, payload: { room_id: string; emotion: string }) {
         const { emotion } = payload;
         const uuid = client.handshake.query.uuId.toString();
-        console.log('uuid: ', uuid);
+        // console.log('uuid: ', uuid);
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
-        console.log('player: ', player);
+        // console.log('player: ', player);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
-        console.log('game: ', game);
+        // console.log('game: ', game);
         const hostSocket = this.uuidToSocket.get((await game.host).uuid);
 
         this.clientsLastActivity.set(uuid, {
@@ -618,6 +620,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
 
         this.server.to(game.room_id.toString()).emit('game_finished', { player_info: playersSorted });
+
+        hostSocket.emit('players_status', {
+            player_info: players,
+        });
 
         hostSocket.emit('game_finished', { player_info: playersSorted });
     }
