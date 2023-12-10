@@ -6,7 +6,7 @@ import { UserService } from 'src/user/user.service';
 import { SocketExtension } from './socket.extension';
 
 @Injectable()
-export class SessionGuard implements CanActivate {
+export class SessionGuardWithDB implements CanActivate {
     constructor(
         private readonly userservice: UserService,
         private readonly authservice: AuthService,
@@ -35,6 +35,33 @@ export class SessionGuard implements CanActivate {
         } catch (e) {
             Logger.error(`💀 session guard 오류: ${e}`);
             client.emit('make_room', { result: false });
+            return false;
+        }
+        return true;
+    }
+}
+
+@Injectable()
+export class SessionGuardWithoutDB implements CanActivate {
+    constructor(
+        private readonly userservice: UserService,
+        private readonly authservice: AuthService,
+        private readonly jwtService: JwtService,
+    ) {}
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const payload = context.switchToWs().getData();
+        const client: SocketExtension = context.switchToWs().getClient();
+
+        let accessToken = payload.access_token;
+        let tokenPayload = null;
+
+        //엑서스 토큰 검증
+        accessToken = normalizeToken(accessToken);
+        tokenPayload = this.jwtService.verify(accessToken, {
+            secret: process.env.JWT_ACCESS_TOKEN_SECRET,
+        });
+
+        if (tokenPayload.host_id !== client.hostInfo.id) {
             return false;
         }
         return true;

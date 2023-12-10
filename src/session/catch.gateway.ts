@@ -10,7 +10,7 @@ import {
 
 import { Server, Socket } from 'socket.io';
 import { User } from 'src/user/entities/user.entity';
-import { SessionGuard } from './session.guard';
+import { SessionGuardWithDB, SessionGuardWithoutDB } from './session.guard';
 import { SessionInfoService } from 'src/session-info/session-info.service';
 import { CatchPlayer } from 'src/session-info/entities/catch.player.entitiy';
 import { Host } from 'src/session-info/entities/host.entity';
@@ -165,7 +165,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     //호스트 접속, 방생성
-    @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithDB)
     @SubscribeMessage('make_room')
     async makeRoom(
         client: SocketExtension,
@@ -233,7 +233,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     //todo => 게임 시작버튼을 누를 시 access_token 토큰 필요
     //게임 시작
-    @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithDB)
     @SubscribeMessage('start_catch_game')
     async startCatchGame(client: Socket, payload: { hostInfo: User }) {
         const uuid = client.handshake.query.uuId.toString();
@@ -440,7 +440,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     //캐치 마인드 게임 종료
-    // @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('end_game')
     async end(client: Socket, payload: { room_id: string }) {
         const { room_id } = payload;
@@ -460,7 +460,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     //캐치 마인드 정답 설정 (호스트만 가능)
-    @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithDB)
     @SubscribeMessage('set_catch_answer')
     async setCatchAnswer(client: Socket, payload: { room_id: string; ans: string }) {
         const { room_id, ans } = payload;
@@ -515,7 +515,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //     });
     // }
 
-    // @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('draw')
     handleDraw(client: any, canvasData: any): void {
         // 클라이언트로 그림 데이터 및 캔버스 정보 전송
@@ -526,7 +526,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         } catch (error) {}
     }
 
-    // @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('clear_draw')
     clearDraw(client: any, payload: { room_id: number }): void {
         // 클라이언트로 그림 데이터 및 캔버스 정보 전송

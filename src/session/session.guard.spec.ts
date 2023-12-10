@@ -1,7 +1,7 @@
-import { SessionGuard } from './session.guard';
+import { SessionGuardWithDB } from './session.guard';
 
-describe('SessionGuard', () => {
+describe('SessionGuardWithDB', () => {
     it('should be defined', () => {
-        expect(new SessionGuard()).toBeDefined();
+        expect(new SessionGuardWithDB()).toBeDefined();
     });
 });
