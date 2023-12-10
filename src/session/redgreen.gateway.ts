@@ -39,7 +39,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
     private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
 
-    async handleConnection(client: Socket) {
+    handleConnection(client: Socket) {
         const uuId = client.handshake.query.uuId.toString();
         // console.log('캐치게임 클라이언트 접속 로그: ', uuId);
         if (uuId === undefined) {
