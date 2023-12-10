@@ -325,7 +325,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         if (current_win_num >= game.win_num) {
             return;
         }
-        const current_alive_num = this.roomToAliveNum.get(game.room_id);
 
         // console.log(game);
         // const hostSocket = this.uuidToSocket.get((await game.host).uuid);
@@ -342,12 +341,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             if (player.distance >= game.length) {
                 await this.touchdown(player, game);
             }
-        }
-        if (current_alive_num <= 0 || current_win_num >= game.win_num) {
-            Logger.log(
-                `[finish: ${player.uuid}], cur_win_num: ${current_win_num}, cur_alive_num: ${current_alive_num}`,
-            );
-            await this.finish(game);
         }
     }
 
@@ -496,7 +489,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
         player.distance = game.length + game.win_num - current_win_num;
 
-
         let current_alive_num = this.roomToAliveNum.get(game.room_id);
         current_alive_num -= 1;
         this.roomToAliveNum.set(game.room_id, current_alive_num);
@@ -583,13 +575,16 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
                 player_info: players,
             });
 
-            // for (const player_socket of player_sockets) {
-            //     player_socket.emit('sync_game_room_info', {
-            //         room_id: room.room_id,
-            //         host: host,
-            //         players: players,
-            //     });
-            // }
+            // finish 조건을 만족했는지를 검사
+            const currentWinNum = this.roomToWinNum.get(game.room_id);
+            const currentAliveNum = this.roomToAliveNum.get(game.room_id);
+            if (currentAliveNum <= 0 || currentWinNum >= game.win_num) {
+                Logger.log(
+                    `[syncGameRoomInfo: ${game.room_id}], cur_win_num: ${currentWinNum}, cur_alive_num: ${currentAliveNum}`,
+                    'syncGameRoomInfo',
+                );
+                await this.finish(game);
+            }
         }
     }
 
