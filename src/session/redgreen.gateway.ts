@@ -13,6 +13,7 @@ import { SessionInfoService } from 'src/session-info/session-info.service';
 import { RedGreenPlayer } from 'src/session-info/entities/redgreen.player.entity';
 import { Host } from 'src/session-info/entities/host.entity';
 import { RedGreenGame } from 'src/session-info/entities/redgreen.game.entity';
+import * as AsyncLock from 'async-lock';
 
 @WebSocketGateway({
     namespace: 'redgreen',
@@ -33,6 +34,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     private uuidToSocket = new Map<string, Socket>();
     private socketToUuid = new Map<Socket, string>();
+    private runLock = new AsyncLock();
 
     // < uuid, 최근활동 시간 > 인터벌로 체크할 클라이언트들
     private readonly clientsLastActivity: Map<string, { lastActivity: number }> = new Map();
@@ -313,31 +315,33 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      */
     @SubscribeMessage('run')
     async run(client: Socket, payload: { shakeCount: number; latency?: number }) {
-        const { shakeCount } = payload;
-        const latency = payload.latency || 0;
-        const uuid = client.handshake.query.uuId.toString();
-        const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
-        const game: RedGreenGame = (await player.room) as RedGreenGame;
-        // console.log(game);
-        const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+        this.runLock.acquire('run', async () => {
+            const { shakeCount } = payload;
+            const latency = payload.latency || 0;
+            const uuid = client.handshake.query.uuId.toString();
+            const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+            const game: RedGreenGame = (await player.room) as RedGreenGame;
+            // console.log(game);
+            const hostSocket = this.uuidToSocket.get((await game.host).uuid);
 
-        if (game.status !== 'playing') {
-            client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
-            return;
-        }
-        if (game.killer_mode === true && this.doesPlayerHaveToDie(game, latency)) {
-            await this.youdie(player, game);
-        } else {
-            player.distance = shakeCount;
-            await this.sessionInfoService.redGreenGamePlayerSave(player);
-            hostSocket.emit('run', { uuid, shakeCount });
-            if (player.distance >= game.length) {
-                await this.touchdown(player, game);
+            if (game.status !== 'playing') {
+                client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
+                return;
             }
-        }
-        if (game.current_alive_num <= 0 || game.current_win_num >= game.win_num) {
-            await this.finish(game);
-        }
+            if (game.killer_mode === true && this.doesPlayerHaveToDie(game, latency)) {
+                await this.youdie(player, game);
+            } else {
+                player.distance = shakeCount;
+                await this.sessionInfoService.redGreenGamePlayerSave(player);
+                hostSocket.emit('run', { uuid, shakeCount });
+                if (player.distance >= game.length) {
+                    await this.touchdown(player, game);
+                }
+            }
+            if (game.current_alive_num <= 0 || game.current_win_num >= game.win_num) {
+                await this.finish(game);
+            }
+        });
     }
 
     /**
