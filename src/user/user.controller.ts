@@ -10,7 +10,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
  * passed in controller decorator.
  * in our case our base URL is http://localhost:3000/user
  */
-@Controller('user')
+@Controller('api/user')
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
