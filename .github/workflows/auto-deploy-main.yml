@@ -19,7 +19,7 @@ jobs:
           key: ${{ secrets.REMOTE_PRIVATE_KEY }} # ec2 instance pem key
           port: ${{ secrets.REMOTE_SSH_PORT }} # 접속포트
           script: | # 실행할 스크립트
-            cd /home/ubuntu/cicd-test
+            cd /home/ubuntu/auto-deploy/recre-backend
             git pull origin main
             pm2 kill
             npm i --force
