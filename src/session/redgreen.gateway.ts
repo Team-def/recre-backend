@@ -7,7 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
-import { SessionGuard } from './session.guard';
+import { SessionGuardWithDB, SessionGuardWithoutDB } from './session.guard';
 import { SocketExtension } from './socket.extension';
 import { SessionInfoService } from 'src/session-info/session-info.service';
 import { RedGreenPlayer } from 'src/session-info/entities/redgreen.player.entity';
@@ -137,7 +137,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param payload RedGreenEntity
      * @returns ack for host
      */
-    @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithDB)
     @SubscribeMessage('make_room')
     async makeRoomRedGreen(
         client: SocketExtension,
@@ -179,7 +179,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         await this.sessionInfoService.hostSave(host);
     }
 
-    @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithDB)
     @SubscribeMessage('close_gate')
     async closeGate(client: SocketExtension, payload: { room_id: number }) {
         const { room_id } = payload;
@@ -288,6 +288,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload none
      */
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('start_game')
     async startGame(client: Socket, payload: any) {
         const uuid = client.handshake.query.uuId.toString();
@@ -367,7 +368,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload
      */
-    // @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('stop')
     async stop(client: Socket, payload: { cur_time: Date }) {
         const uuid = client.handshake.query.uuId.toString();
@@ -393,7 +394,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload
      */
-    // @UseGuards(SessionGuard)
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('resume')
     async resume(client: Socket, payload: { cur_time: Date }) {
         const { cur_time } = payload;
@@ -418,7 +419,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         client.emit('resume', { result: true });
     }
 
-    // @SubscribeMessage('youdie')
     async youdie(player: RedGreenPlayer, game: RedGreenGame) {
         if (!player) {
             Logger.error(player.name + '는 게임 참가자가 아닙니다.');
@@ -456,7 +456,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         });
     }
 
-    // @SubscribeMessage('touchdown')
     async touchdown(player: RedGreenPlayer, game: RedGreenGame) {
         if (!player) {
             Logger.error(player.name + '는 게임 참가자가 아닙니다.', 'touchdown');
@@ -592,6 +591,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         hostSocket.emit('pre_player_status', { pre_player_info: players });
     }
 
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('game_finished')
     async gameFinished(client: Socket, payload: any) {
         const uuid = client.handshake.query.uuId.toString();
@@ -633,6 +633,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload
      */
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('end_game')
     async endGame(client: Socket, payload: any) {
         const uuId = client.handshake.query.uuId.toString();
