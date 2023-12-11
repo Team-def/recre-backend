@@ -4,7 +4,7 @@ import { Controller, Get, HttpStatus, Post, Req, Res, UseGuards, HttpException, 
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Response } from 'express';
 
-@Controller('auth/')
+@Controller('api/auth/')
 export class AuthController {
     getHello(): any {
         throw new Error('Method not implemented.');
