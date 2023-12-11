@@ -633,6 +633,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
      * @param client host
      * @param payload
      */
+    @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('end_game')
     async endGame(client: Socket, payload: any) {
         const uuId = client.handshake.query.uuId.toString();
