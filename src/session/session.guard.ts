@@ -34,7 +34,6 @@ export class SessionGuardWithDB implements CanActivate {
             client.uuId = client.handshake.query.uuId.toString();
         } catch (e) {
             Logger.error(`💀 session guard 오류: ${e}`);
-            client.emit('make_room', { result: false });
             return false;
         }
         return true;
@@ -54,14 +53,15 @@ export class SessionGuardWithoutDB implements CanActivate {
 
         let accessToken = payload.access_token;
         let tokenPayload = null;
-
-        //엑서스 토큰 검증
-        accessToken = normalizeToken(accessToken);
-        tokenPayload = this.jwtService.verify(accessToken, {
-            secret: process.env.JWT_ACCESS_TOKEN_SECRET,
-        });
-
-        if (tokenPayload.host_id !== client.hostInfo.id) {
+        try {
+            //엑서스 토큰 검증
+            accessToken = normalizeToken(accessToken);
+            tokenPayload = this.jwtService.verify(accessToken, {
+                secret: process.env.JWT_ACCESS_TOKEN_SECRET,
+            });
+            client.hostInfo.id = tokenPayload.id;
+        } catch (e) {
+            Logger.error(`💀 session guard 오류: ${e}`);
             return false;
         }
         return true;
