@@ -1,4 +1,4 @@
-## RecRe
+# RecRe
 
 - \[WHY\] 우리 모두는 관중들의 이목을 집중시키고 분위기를 환기할 수 있는 힘을 가지고 있습니다.
 - \[HOW\] Team-def는 별도의 지식 없이도 웹 브라우저만으로 쉽게 레크리에이션을 진행할 수 있는 서비스를 고안하였으며,
@@ -88,6 +88,11 @@ LISTEN_PORT=
 npm run start:dev
 npm run start:prod
 ```
+
+## 포스터
+
+![최승현-RecRe-2](https://github.com/Team-def/recre-backend/assets/18757823/533ea910-79e2-47e5-9e44-edd4bfac73f8)
+
 
 ## Project Directory Structure
 
