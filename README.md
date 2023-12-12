@@ -143,7 +143,7 @@ src
 - 현상: 식별되지 않은 연결들이 게임이 종료된 이후에도 남아 서버 메모리를 낭비하는 일이 발생
 - 원인1([소켓 지박령 #20](https://github.com/Team-def/recre-backend/issues/20)): 플레이어들이 QR을 통해 페이지에 접속하자마자 웹 소켓이 연결됨. 플레이어가 모종의 이유로 레디하지 못한 경우, 게임이 종료되어도 플레이어 클라이언트가 지속적으로 웹 소켓 연결을 시도하려고 하기 때문에 연결 해제가 불가능. 
 	- 해결1: 플레이어가 닉네임을 입력하고 준비완료 버튼을 눌러야 웹 소켓 연결을 체결하도록 타이밍을 미룸. 
-- 원인2([게임 결과 처리 #8](https://github.com/Team-def/recre-backend/issues/8)): 플레이어가 새로고침을 하거나 탭을 닫는 행위가 명시적 disconnection이 이루어지지 않았음.
+- 원인2([게임 결과 처리 #8](https://github.com/Team-def/recre-backend/issues/8)): 플레이어가 새로고침을 하거나 탭을 닫는 행위가 명시적 disconnection이 이루어지지 않았음.
 	- 해결1: 플레이어 게임종료 버튼을 누르면 `leave_game` 이벤트를 명시적으로 날려 서버가 해당 소켓을 disconnect하고 또한 호스트 클라이언트에게도 `player_list_remove`를 보내어 예외처리를 수행함. (`playerDisconnect`, `hostDisconnect`)
 	- 해결2: 새로고침과 같이 명시적으로 `leave_game` 이벤트가 날아가지 않는 disconnection에 한하여 서버는 주기적으로 일정시간(10분)동안 아무 이벤트도 보내지 않은 클라이언트를 식별하여 강제로 disconnection을 수행한다. (`checkInactiveClients`)
 
@@ -156,11 +156,11 @@ src
 ![Pasted image 20231212152442](https://github.com/Team-def/recre-backend/assets/18757823/8ce7337a-9c14-4fd4-9560-5bfeab6e5fad)
 
 
-### 게임 공정성을 위한 지연시간 극복
+## 게임 공정성을 위한 지연시간 극복
 
 [무궁화꽃이피었습니다 게임 공정성 향상 (Notion)](https://recre.notion.site/55dad7886247492a8d52806cc8a062db?pvs=4)
 
-## 관련 링크
+**관련 링크**
 
 [https://github.com/Team-def/recre-backend/pull/104](https://github.com/Team-def/recre-backend/pull/104)
 
@@ -172,17 +172,17 @@ src
 
 [cloudflare.com - what is latency](https://www.cloudflare.com/learning/performance/glossary/what-is-latency/)
 
-## 문제상황
+### 문제상황
 
 게임플레이에 지장을 줄 정도로 판정이 가혹했습니다. 지연시간을 생각하지 않아 stop 이벤트 이전에 발송된 run이 뒤늦게 도착해 게임오버가 되는 경우가 발생했습니다.
 
-## 해결방안
+### 해결방안
 
 지연시간이 존재하면 극복하면 되는 법. 플레이어 클라이언트가 주기적으로 서버에 ping 이벤트를 보내 서버가 응답한 acknowledgement를 받을때까지의 시간을 구합니다. 이 시간을 Round Trip Time, 줄여서 RTT라고 부릅니다. RTT는 client → server → client 2-way이기 때문에 이를 절반으로 나누어야 1-way 지연시간을 구할 수 있습니다.
 
 ![Pasted image 20231212164243](https://github.com/Team-def/recre-backend/assets/18757823/c5368ad8-c69b-40c5-9428-4e1906b62df3)
 
-## Show Me the Code
+### Show Me the Code
 
 **client**:
 
