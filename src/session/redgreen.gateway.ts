@@ -323,12 +323,17 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             const latency = payload.latency || 0;
             const uuid = client.handshake.query.uuId.toString();
             const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
+
+            // 플레이어가 없거나 방이 없을 시 반환
+            if (!player) return;
             const game: RedGreenGame = (await player.room) as RedGreenGame;
+            if (!game) return;
             // console.log(game);
             const hostSocket = this.uuidToSocket.get((await game.host).uuid);
+            if (!hostSocket) return;
 
-            if (game.status !== 'playing') {
-                client.emit('run', { result: false, message: '게임이 시작되지 않았습니다.' });
+            if (game.status !== 'playing' || player.state !== 'ALIVE') {
+                // Logger.error(game.status + player.state + '게임이 시작되지 않았습니다.');
                 return;
             }
             if (game.killer_mode === true && this.doesPlayerHaveToDie(game, latency)) {
@@ -397,26 +402,28 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('resume')
     async resume(client: Socket, payload: { cur_time: Date }) {
-        const { cur_time } = payload;
-        const uuid = client.handshake.query.uuId.toString();
-        const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
-        if (!host) {
-            Logger.error(uuid + '는 호스트가 아닙니다.');
-            return { result: false, message: uuid + '는 호스트가 아닙니다.' };
-        }
-        // const game: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId((await host.room).room_id);
-        const game: RedGreenGame = (await host.room) as RedGreenGame;
-        if (game.status !== 'playing') {
-            Logger.error('게임이 시작되지 않았습니다.');
-            return { result: false, message: '게임이 시작되지 않았습니다.' };
-        }
-        game.killer_mode = false;
+        this.lock.acquire('run', async () => {
+            const { cur_time } = payload;
+            const uuid = client.handshake.query.uuId.toString();
+            const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
+            if (!host) {
+                Logger.error(uuid + '는 호스트가 아닙니다.');
+                return { result: false, message: uuid + '는 호스트가 아닙니다.' };
+            }
+            // const game: RedGreenGame = await this.sessionInfoService.redGreenGameFindByRoomId((await host.room).room_id);
+            const game: RedGreenGame = (await host.room) as RedGreenGame;
+            if (game.status !== 'playing') {
+                // Logger.error('게임이 시작되지 않았습니다.');
+                return { result: false, message: '게임이 시작되지 않았습니다.' };
+            }
+            game.killer_mode = false;
 
-        this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: true });
+            this.server.to(game.room_id.toString()).emit('realtime_redgreen', { go: true });
 
-        await this.sessionInfoService.redGreenGameSave(game);
+            await this.sessionInfoService.redGreenGameSave(game);
 
-        client.emit('resume', { result: true });
+            client.emit('resume', { result: true });
+        });
     }
 
     async youdie(player: RedGreenPlayer, game: RedGreenGame) {
