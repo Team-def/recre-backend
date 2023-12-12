@@ -8,25 +8,26 @@
 
 - Catch My Mind
 
-![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/087356a6-d506-4a86-94b3-c4fd178cbf31)
+![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/087356a6-d506-4a86-94b3-c4fd178cbf31)
 
 - Red Light, Green Light
 
-![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/884b6614-6648-4cd7-920e-9b80771537ce)
+![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/884b6614-6648-4cd7-920e-9b80771537ce)
 
 ## Architectures
 
-![image](https://github.com/Team-def/recre-backend/assets/18757823/c158d24b-fb93-453e-bdff-614b42069145)
+![최종 수정](https://github.com/Team-def/recre-backend/assets/18757823/5d932492-939d-4651-aef0-e74f65c6dd2a)
 
 - Backend
   - 호스트 유저 정보 관리: PostgreSQL
   - 실시간 연결: Socket.io
-  - 플레이어 상태 관리: SQLite (In Memory)
+  - 플레이어, 호스트, 게임룸 상태 관리: SQLite (In Memory)
   - 백엔드 업무로직: NestJS
 - Frontend
   - 프레임워크: NextJS w/ ReactJS
   - 상태관리: Jotai
-  - 무궁화꽃이 피었습니다 게임: Three.JS
+  - 캐치마인드 게임; Socket.io
+  - 무궁화꽃이 피었습니다 게임: Three.JS, Socket.io
 
 ## Build with NestJS
 
@@ -97,18 +98,18 @@ src
 ├── app.controller.ts
 ├── app.module.ts
 ├── app.service.ts
-├── auth # 호스트 사용자 인증 / 인가 모듈
+├── auth ############################## 호스트 사용자 인증 / 인가 모듈
 │   ├── auth.controller.ts
 │   ├── auth.module.ts
 │   └── auth.service.ts
 ├── main.ts
-├── session # 캐치마인드, 무궁화꽃이 피었습니다 게임로직 & Socket.io 인터페이스
+├── session ########################### 캐치마인드, 무궁화꽃이 피었습니다 게임로직 & Socket.io 인터페이스
 │   ├── catch.gateway.ts
 │   ├── redgreen.gateway.ts
 │   ├── session.guard.ts
 │   ├── session.module.ts
 │   └── socket.extension.ts
-├── session-info # 게임, 플레이어, 호스트 상태를 관리하는 모듈
+├── session-info ###################### 게임, 플레이어, 호스트 상태를 관리하는 모듈
 │   ├── entities
 │   │   ├── catch.game.entity.ts
 │   │   ├── catch.player.entitiy.ts
@@ -119,7 +120,7 @@ src
 │   │   └── room.entity.ts
 │   ├── session-info.module.ts
 │   └── session-info.service.ts
-└── user # 호스트 정보를 관리하는 모듈
+└── user ############################## 호스트 정보를 관리하는 모듈
     ├── dto
     │   ├── create-user.dto.ts
     │   └── update-user.dto.ts
@@ -128,4 +129,94 @@ src
     ├── user.controller.ts
     ├── user.module.ts
     └── user.service.ts
+```
+
+## 기술적 챌린지
+
+### 소켓 유령 제거 & 지속적인 연결성 보장
+
+- 현상: 식별되지 않은 연결들이 게임이 종료된 이후에도 남아 서버 메모리를 낭비하는 일이 발생
+- 원인1([소켓 지박령 #20](https://github.com/Team-def/recre-backend/issues/20)): 플레이어들이 QR을 통해 페이지에 접속하자마자 웹 소켓이 연결됨. 플레이어가 모종의 이유로 레디하지 못한 경우, 게임이 종료되어도 플레이어 클라이언트가 지속적으로 웹 소켓 연결을 시도하려고 하기 때문에 연결 해제가 불가능. 
+	- 해결1: 플레이어가 닉네임을 입력하고 준비완료 버튼을 눌러야 웹 소켓 연결을 체결하도록 타이밍을 미룸. 
+- 원인2([게임 결과 처리 #8](https://github.com/Team-def/recre-backend/issues/8)): 플레이어가 새로고침을 하거나 탭을 닫는 행위가 명시적 disconnection이 이루어지지 않았음.
+	- 해결1: 플레이어 게임종료 버튼을 누르면 `leave_game` 이벤트를 명시적으로 날려 서버가 해당 소켓을 disconnect하고 또한 호스트 클라이언트에게도 `player_list_remove`를 보내어 예외처리를 수행함. (`playerDisconnect`, `hostDisconnect`)
+	- 해결2: 새로고침과 같이 명시적으로 `leave_game` 이벤트가 날아가지 않는 disconnection에 한하여 서버는 주기적으로 일정시간(10분)동안 아무 이벤트도 보내지 않은 클라이언트를 식별하여 강제로 disconnection을 수행한다. (`checkInactiveClients`)
+
+[중간에 끊긴 소켓통신에 대한 사용자 식별 및 접속유지 프로토콜 구현 #16](https://github.com/Team-def/recre-backend/issues/16)
+
+- 챌린지: 불안정한 네트워크 상태에서도 지속적으로 연결을 보장하여 사용자 경험을 향상시키자.
+- 원인: 세션 유지중에도 끊임없이 클라이언트의 소켓세션이 끊어졌다가 자동으로 연결된다. 문제는 새로 소켓을 connect 하게되면 소켓 id가 재설정되어 소켓아이디를 활용하여 플레이어를 식별하던 이전 방식으로는 위의 상황을 커버하지 못한다. 기존 접속되어있던 소켓은 클라이언트가 더이상 제어하지 않으므로 서버측에서 해당 소켓이 정상적으로 사용중인지 않은지 확인되지 않음
+- 해결: 플레이어는 서버에게 Ready 요청을 보낼때 쿼리 인자에 자신의 UUID를 생성한다. 따라서 서버는 새로운 connectioin 요청이 들어왔을때 UUID 존재유무, 새로운 연결인지, 기존 연결인지 확인이 가능해졌다.
+
+![Pasted image 20231212152442](https://github.com/Team-def/recre-backend/assets/18757823/8ce7337a-9c14-4fd4-9560-5bfeab6e5fad)
+
+
+### 게임 공정성을 위한 지연시간 극복
+
+[무궁화꽃이피었습니다 게임 공정성 향상 (Notion)](https://recre.notion.site/55dad7886247492a8d52806cc8a062db?pvs=4)
+
+## 관련 링크
+
+[https://github.com/Team-def/recre-backend/pull/104](https://github.com/Team-def/recre-backend/pull/104)
+
+[https://github.com/Team-def/recre-backend/issues/87](https://github.com/Team-def/recre-backend/issues/87)
+
+[web socket latency 관련 블로그 (3-way)](https://ankitbko.github.io/blog/2022/06/websocket-latency/)
+
+[socket.io latency 계산식 (1-way)](https://socket.io/how-to/check-the-latency-of-the-connection)
+
+[cloudflare.com - what is latency](https://www.cloudflare.com/learning/performance/glossary/what-is-latency/)
+
+## 문제상황
+
+게임플레이에 지장을 줄 정도로 판정이 가혹했습니다. 지연시간을 생각하지 않아 stop 이벤트 이전에 발송된 run이 뒤늦게 도착해 게임오버가 되는 경우가 발생했습니다.
+
+## 해결방안
+
+지연시간이 존재하면 극복하면 되는 법. 플레이어 클라이언트가 주기적으로 서버에 ping 이벤트를 보내 서버가 응답한 acknowledgement를 받을때까지의 시간을 구합니다. 이 시간을 Round Trip Time, 줄여서 RTT라고 부릅니다. RTT는 client → server → client 2-way이기 때문에 이를 절반으로 나누어야 1-way 지연시간을 구할 수 있습니다.
+
+![Pasted image 20231212164243](https://github.com/Team-def/recre-backend/assets/18757823/c5368ad8-c69b-40c5-9428-4e1906b62df3)
+
+## Show Me the Code
+
+**client**:
+
+```tsx
+const start = performance.now();
+socket.emit("ping", {start}, (res: {start: number}) => {
+	const end = performance.now();
+	const latency = (end - res.start) / 2;
+	console.log(`latency: ${latency}ms`);
+});
+
+```
+
+**server**:
+
+레이턴시 측정을 위해 ping 이벤트에 ack를 보내주는 루틴
+
+```tsx
+@SubscribeMessage('ping')
+ping(client: Socket, payload: { start: number }) {
+    return { start: payload.start };
+}
+```
+
+player run 이벤트에 따른 죽음판정정책
+
+```ts
+/**
+ * 지연시간 기반 죽음판정 정책
+ */
+private doesPlayerHaveToDie(game: RedGreenGame, latency: number): boolean {
+	const CONSTANT_MS = 200; // stop 메시지 날아온 시간으로부터 최소 인정시간
+	const admitTime = game.last_killer_time + CONSTANT_MS + latency;
+	const currentTime = performance.now();
+	if (currentTime > admitTime) {
+		Logger.debug(`${currentTime - admitTime}ms 만큼 늦었습니다. (latency: ${latency})`, 'doesPlayerHaveToDie');
+		return true;
+	}
+	Logger.debug(`${admitTime - currentTime}ms 만큼 빨랐습니다. (latency: ${latency})`, 'doesPlayerHaveToDie');
+	return false;
+}
 ```
