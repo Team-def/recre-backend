@@ -569,7 +569,7 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const games: RedGreenGame[] = await this.sessionInfoService.redGreenGameFindAll();
         // console.log('syncGameRoomInfo: ' + games);
         if (games.length === 0) {
-            Logger.warn('게임이 없습니다.', 'refreshPlayerRank');
+            // Logger.warn('게임이 없습니다.', 'refreshPlayerRank');
             return;
         }
         for (const game of games) {
