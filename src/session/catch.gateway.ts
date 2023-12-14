@@ -112,6 +112,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const uuid = client.handshake.query.uuId.toString();
         const player: CatchPlayer = await this.sessionInfoService.catchGamePlayerFindByUuid(uuid);
         if (!player) {
+            Logger.warn(`uuid ${uuid}에 대한 플레이어가 존재하지 않습니다.`, 'leave_game');
             return { result: false };
         }
         const room: CatchGame = (await player.room) as CatchGame;
@@ -340,7 +341,10 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const player: CatchPlayer = await this.sessionInfoService.catchGamePlayerFindByUuid(uuId);
         if (player === null || player.room === null) {
-            Logger.warn(room_id, '정답을 보낼 수 없습니다..',);
+            Logger.warn(
+                `room_id: ${room_id}, uuid ${uuId} 플레이어 또는 플레이어가 속한 방이 없습니다.`,
+                'throw_catch_answer',
+            );
             return;
         }
 
@@ -351,6 +355,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         Logger.log('게임 상태' + room.status);
         if (room.status !== 'playing') {
+            Logger.warn('게임이 시작되지 않았습니다.');
             return;
         }
         const hostuuid = host.uuid;
@@ -393,17 +398,27 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const uuId = client.handshake.query.uuId.toString();
 
         const player: CatchPlayer = await this.sessionInfoService.catchGamePlayerFindByUuid(uuId);
-        if (!player) return;
+        if (!player) {
+            Logger.warn(`uuid ${uuId}에 대한 플레이어가 존재하지 않습니다.`, 'express_emotion');
+            return;
+        }
         const room: CatchGame = (await player.room) as CatchGame;
-        if (!room) return;
+        if (!room) {
+            Logger.warn(`uuid ${uuId}가 속한 방이 없습니다.`, 'express_emotion');
+            return;
+        }
         const host: Host = await room.host;
-        if (!host) return;
+        if (!host) {
+            Logger.warn(`uuid ${uuId}가 속한 방의 호스트가 없습니다.`, 'express_emotion');
+            return;
+        }
 
         this.clientsLastActivity.set(uuId, {
             lastActivity: Date.now(),
         });
 
         if (player === null || emotion === undefined) {
+            Logger.warn(`uuid ${uuId}가 전송한 감정표현이 없습니다.`, 'express_emotion');
             return;
         }
 

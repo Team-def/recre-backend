@@ -83,7 +83,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     async cleanRoomByHostUuid(uuid: string) {
         const host: Host = await this.sessionInfoService.hostFindByUuid(uuid);
-        if (!host) return;
+        if (!host) {
+            Logger.warn(`uuid ${uuid}는 호스트가 아닙니다.`, 'cleanRoomByHostUuid');
+            return;
+        }
         const room: RedGreenGame = (await host.room) as RedGreenGame;
         const players = await room.players;
 
@@ -268,12 +271,16 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const uuid: string = client.handshake.query.uuId.toString();
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         if (!player) {
+            Logger.warn(`uuid ${uuid}에 대한 플레이어가 존재하지 않습니다.`, 'leave_game');
             return { result: false };
         }
         Logger.log(player.name + '가 게임에서 나감');
         const room: RedGreenGame = (await player.room) as RedGreenGame;
         // 방이 없을 시 반환
-        if (!room) return;
+        if (!room) {
+            Logger.warn(`uuid ${uuid}가 속한 방이 없습니다.`, 'leave_game');
+            return;
+        }
         room.current_user_num -= 1;
 
         const host: Host = await this.sessionInfoService.hostFindByRoomId(room.room_id);
@@ -329,17 +336,29 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
 
             // 플레이어가 없거나 방이 없을 시 반환
-            if (!player) return;
+            if (!player) {
+                // Logger.warn(`uuid ${uuid}에 대한 플레이어가 존재하지 않습니다.`, 'run');
+                return;
+            }
             const game: RedGreenGame = (await player.room) as RedGreenGame;
             // 게임룸이 없을 시 반환
-            if (!game) return;
+            if (!game) {
+                // Logger.warn(`uuid ${uuid}가 속한 방이 없습니다.`, 'run');
+                return;
+            }
             // console.log(game);
 
             const host = await game.host;
-            if (!host) return;
+            if (!host) {
+                Logger.warn(`uuid ${uuid}가 속한 방의 호스트가 없습니다.`, 'run');
+                return;
+            }
 
             const hostSocket = this.uuidToSocket.get(host.uuid);
-            if (!hostSocket) return;
+            if (!hostSocket) {
+                Logger.warn(`uuid ${uuid}가 속한 방의 호스트 소켓이 없습니다.`, 'run');
+                return;
+            }
 
             if (game.status !== 'playing' || player.state !== 'ALIVE') {
                 // Logger.error(game.status + player.state + '게임이 시작되지 않았습니다.');
@@ -525,12 +544,16 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const player: RedGreenPlayer = await this.sessionInfoService.redGreenGamePlayerFindByUuid(uuid);
         // console.log('player: ', player);
         const game: RedGreenGame = (await player.room) as RedGreenGame;
-        // 게임룸이 존제하지 않을 시 반환
-        if (!game) return;
+        // 게임룸이 존재하지 않을 시 반환
+        if (!game) {
+            Logger.warn(`uuid ${uuid}가 속한 방이 없습니다.`, 'express_emotion');
+            return;
+        }
 
         const hostSocket = this.uuidToSocket.get((await game.host).uuid);
         // console.log('game: ', game);
         if (player === null || emotion === undefined || hostSocket === undefined) {
+            Logger.warn(`uuid ${uuid}에 대한 플레이어 또는 속한 방의 호스트가 없습니다.`, 'express_emotion');
             return;
         }
 
@@ -545,7 +568,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         // this.sessionInfoService.redGreenGameFindAll().then((games) => {
         const games: RedGreenGame[] = await this.sessionInfoService.redGreenGameFindAll();
         // console.log('syncGameRoomInfo: ' + games);
-        if (games.length === 0) return;
+        if (games.length === 0) {
+            Logger.warn('게임이 없습니다.', 'refreshPlayerRank');
+            return;
+        }
         for (const game of games) {
             if (game.status !== 'playing') continue;
             const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
@@ -569,7 +595,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
     async syncGameRoomInfo() {
         const games: RedGreenGame[] = await this.sessionInfoService.redGreenGameFindAll();
         // console.log('syncGameRoomInfo: ' + games);
-        if (games.length === 0) return;
+        if (games.length === 0) {
+            // Logger.warn('오픈된 게임이 없습니다.', 'syncGameRoomInfo');
+            return;
+        }
         for (const game of games) {
             if (game.status !== 'playing') continue;
             const host: Host = await game.host;
@@ -578,7 +607,10 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
 
             // Logger.debug(JSON.stringify(players, null, 4)); // stringify with 4 spaces at each level)
 
-            if (!host_socket) return;
+            if (!host_socket) {
+                Logger.warn('호스트 소켓이 없습니다.', 'syncGameRoomInfo');
+                return;
+            }
             host_socket.emit('players_status', {
                 player_info: players,
             });
@@ -598,12 +630,12 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
         const uuid = hostSocket.handshake.query.uuId.toString();
         const host = await this.sessionInfoService.hostFindByUuid(uuid);
         if (!host) {
-            Logger.warn('호스트가 아닙니다.');
+            Logger.warn(`uuid ${uuid}는 호스트가 아닙니다.`);
             return { result: false, message: '호스트가 아닙니다.' };
         }
         const game: RedGreenGame = (await host.room) as RedGreenGame;
         if (!game) {
-            Logger.warn('게임이 존재하지 않습니다.');
+            Logger.warn(`uuid ${uuid} 호스트의 게임이 존재하지 않습니다.`);
             return { result: false, message: '게임이 존재하지 않습니다.' };
         }
         const players: RedGreenPlayer[] = (await game.players) as RedGreenPlayer[];
