@@ -507,15 +507,13 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //     });
     // }
 
-    @UseGuards(SessionGuardWithoutDB)
+    // @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('draw')
     handleDraw(client: any, canvasData: any): void {
         // 클라이언트로 그림 데이터 및 캔버스 정보 전송
-        // Logger.log('draw: 헀다');
-        try {
-            const { room_id } = canvasData;
-            this.server.to(room_id.toString()).emit('draw', canvasData);
-        } catch (error) {}
+        Logger.log('draw: 헀다');
+
+        this.server.to('10').emit('draw', canvasData);
     }
 
     @UseGuards(SessionGuardWithoutDB)
