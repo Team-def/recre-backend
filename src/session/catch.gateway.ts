@@ -48,7 +48,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // 소켓 접속
     handleConnection(client: Socket) {
         const uuId = client.handshake.query.uuId.toString();
-        console.log('캐치게임 클라이언트 접속 로그: ', uuId);
+        Logger.log('캐치게임 클라이언트 접속 로그: ', uuId);
         if (uuId === undefined) {
             client.disconnect();
             return;
@@ -57,10 +57,10 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const oldSocket = this.uuidToSocket.get(uuId);
         if (!oldSocket) {
             //신규 접속자
-            console.log('신규 접속자');
+            Logger.log('신규 접속자');
         } else {
             //기존 접속자
-            console.log('기존 접속자 소켓 초기화');
+            Logger.log('기존 접속자 소켓 초기화');
             oldSocket.disconnect();
             this.sessionInfoService.catchGamePlayerFindByUuid(uuId).then(async (player) => {
                 if (player) {
@@ -92,9 +92,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // const timeout = 10 * 60 * 1000; // 10 minutes (adjust as needed)
         const timeout = 15 * 60 * 1000; // 10 minutes (adjust as needed)
 
-        // console.log(this.clientsLastActivity.size)
         this.clientsLastActivity.forEach(async (client, uuId) => {
-            // console.log(client, clientId);
             const currentTime = Date.now();
             const lastActivityTime = client.lastActivity;
 
@@ -152,8 +150,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     async playerDisconnect(uuId: string) {
-        console.log('플레이어 접속 종료: ', uuId);
-        // const uuId = this.socketTouuid.get(client.id)
+        Logger.log('플레이어 접속 종료: ', uuId);
 
         const player_socket = this.uuidToSocket.get(uuId);
         await this.sessionInfoService.catchGamePlayerDelete(uuId);
@@ -179,12 +176,11 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
         const { game_type, user_num, answer, hostInfo } = payload;
         const uuId = client.handshake.query.uuId.toString();
-        console.log('캐치게임 방 생성 로그: ', uuId);
+        Logger.log('캐치게임 방 생성 로그: ', uuId);
         this.clientsLastActivity.set(uuId.toString(), {
             lastActivity: Date.now(),
         });
 
-        Logger.log('make_room: authoriaztion success');
         Logger.log({
             host_name: hostInfo.nickname,
             room_id: hostInfo.id,
@@ -193,11 +189,9 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             answer: answer,
         });
         if ((await this.sessionInfoService.catchGameRoomFindByRoomId(hostInfo.id)) !== null) {
-            // this.destroyCatchGame(Number(hostInfo.id));
             Logger.log('방을 재생성 합니다.');
             const host = await this.sessionInfoService.hostFindByRoomId(hostInfo.id);
             await this.cleanRoomByHostUuid(host.uuid);
-            // await this.sessionInfoService.hostDelete(host.uuid);
         }
 
         // 호스트 생성
@@ -213,7 +207,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         catchGame.current_user_num = 0;
         catchGame.ans = answer;
 
-        console.log('방 생성', host);
+        Logger.log('방 생성', host);
 
         Logger.log({
             host_name: hostInfo.nickname,
@@ -235,7 +229,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //게임 시작
     @UseGuards(SessionGuardWithDB)
     @SubscribeMessage('start_catch_game')
-    async startCatchGame(client: Socket, payload: { hostInfo: User }) {
+    async startCatchGame(client: Socket) {
         const uuid = client.handshake.query.uuId.toString();
         const room: CatchGame = (await (await this.sessionInfoService.hostFindByUuid(uuid)).room) as CatchGame;
 
@@ -260,7 +254,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             const uuId = client.handshake.query.uuId.toString();
             const { room_id, nickname } = payload;
             if (room_id === undefined || nickname === undefined) {
-                console.log(room_id);
+                Logger.log(room_id);
                 Logger.warn(`room_id: ${client.id} ready: 유효하지 않은 요청입니다.`);
                 return;
             }
@@ -269,12 +263,12 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             if (room !== null) {
                 if (room.current_user_num === room.user_num || room.status !== 'wait') {
-                    Logger.log(room.current_user_num + '방에 참여할 수 없습니다.');
+                    Logger.warn(room.current_user_num + '방에 참여할 수 없습니다.');
                     client.emit('ready', { result: false, message: '방에 참여할 수 없습니다.' });
                     return;
                 }
             } else {
-                console.log(`${room_id}번 방이 존재하지 않습니다.`);
+                Logger.warn(`${room_id}번 방이 존재하지 않습니다.`);
                 client.emit('ready', {
                     result: false,
                     message: '방이 존재하지 않습니다.',
@@ -291,7 +285,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 player.room = Promise.resolve(room);
                 await this.sessionInfoService.catchGamePlayerInsert(player);
             } catch (error) {
-                Logger.log('이미 참가중입니다.');
+                Logger.warn('이미 참가중입니다.');
                 client.emit('ready', {
                     result: false,
                     message: '이미 참가중입니다.',
@@ -346,7 +340,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         const player: CatchPlayer = await this.sessionInfoService.catchGamePlayerFindByUuid(uuId);
         if (player === null || player.room === null) {
-            console.log(room_id, '정답을 보낼 수 없습니다..');
+            Logger.warn(room_id, '정답을 보낼 수 없습니다..',);
             return;
         }
 
@@ -360,7 +354,7 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
         const hostuuid = host.uuid;
-        console.log('정답 입력방 확인 호스트 UUID: ', hostuuid);
+        Logger.log('정답 입력방 확인 호스트 UUID: ', hostuuid);
         const hostSocket = this.uuidToSocket.get(hostuuid);
         if (ans === room.ans) {
             Logger.log('정답: ' + ans);
@@ -399,8 +393,11 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const uuId = client.handshake.query.uuId.toString();
 
         const player: CatchPlayer = await this.sessionInfoService.catchGamePlayerFindByUuid(uuId);
+        if (!player) return;
         const room: CatchGame = (await player.room) as CatchGame;
+        if (!room) return;
         const host: Host = await room.host;
+        if (!host) return;
 
         this.clientsLastActivity.set(uuId, {
             lastActivity: Date.now(),
@@ -410,33 +407,15 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             return;
         }
 
-        Logger.log('게임 상태' + room.status);
+        // Logger.log('게임 상태' + room.status);
 
         const hostuuid = host.uuid;
         const hostSocket = this.uuidToSocket.get(hostuuid);
-        Logger.log('감정 표현: ' + emotion);
+        // Logger.log('감정 표현: ' + emotion);
         hostSocket.emit('express_emotion', {
             emotion: emotion,
             // nickname: clientEntity.nickname,
         });
-    }
-
-    private async destroyCatchGame(room_id: number) {
-        const room = await this.sessionInfoService.catchGameRoomFindByRoomId(room_id);
-        const host = await room.host;
-
-        const hostuuid = host.uuid;
-
-        // 게임 종료
-        this.server.to(room_id.toString()).emit('end', {
-            result: true,
-            answer: room.ans,
-        });
-
-        for (const player of (await room.players) as CatchPlayer[]) {
-            Logger.log('게임 종료: ' + player);
-            this.playerDisconnect(player.uuid); // 캐치 게임 종료시 플레이어 접속 종료
-        }
     }
 
     //캐치 마인드 게임 종료
@@ -478,15 +457,13 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
             lastActivity: Date.now(),
         });
 
-        console.log('정답 입력 로그: ', hostUuid);
-
         if (room.status !== 'wait') {
-            console.log('게임이 이미 시작되었습니다.');
+            Logger.warn('게임이 이미 시작되었습니다.');
             client.emit('set_catch_answer', {
                 type: 'already_started',
                 message: '게임이 이미 시작되었습니다.',
             });
-            console.log('정답:', room.ans);
+            Logger.log('정답:', room.ans);
             return;
         }
 
