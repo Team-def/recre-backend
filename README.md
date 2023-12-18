@@ -158,7 +158,7 @@ src
 ![Pasted image 20231212152442](https://github.com/Team-def/recre-backend/assets/18757823/8ce7337a-9c14-4fd4-9560-5bfeab6e5fad)
 
 
-## 게임 공정성을 위한 지연시간 극복
+### 게임 공정성을 위한 지연시간 극복
 
 **관련 링크**
 
