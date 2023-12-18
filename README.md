@@ -158,35 +158,30 @@ src
 ![Pasted image 20231212152442](https://github.com/Team-def/recre-backend/assets/18757823/8ce7337a-9c14-4fd4-9560-5bfeab6e5fad)
 
 
-## 게임 공정성을 위한 지연시간 극복
-
-[무궁화꽃이피었습니다 게임 공정성 향상 (Notion)](https://recre.notion.site/55dad7886247492a8d52806cc8a062db?pvs=4)
+### 게임 공정성을 위한 지연시간 극복
 
 **관련 링크**
 
-[https://github.com/Team-def/recre-backend/pull/104](https://github.com/Team-def/recre-backend/pull/104)
+- [무궁화꽃이피었습니다 게임 공정성 향상 (Notion)](https://recre.notion.site/55dad7886247492a8d52806cc8a062db?pvs=4)
+- [https://github.com/Team-def/recre-backend/pull/104](https://github.com/Team-def/recre-backend/pull/104)
+- [https://github.com/Team-def/recre-backend/issues/87](https://github.com/Team-def/recre-backend/issues/87)
+- [web socket latency 관련 블로그 (3-way)](https://ankitbko.github.io/blog/2022/06/websocket-latency/)
+- [socket.io latency 계산식 (1-way)](https://socket.io/how-to/check-the-latency-of-the-connection)
+- [cloudflare.com - what is latency](https://www.cloudflare.com/learning/performance/glossary/what-is-latency/)
 
-[https://github.com/Team-def/recre-backend/issues/87](https://github.com/Team-def/recre-backend/issues/87)
-
-[web socket latency 관련 블로그 (3-way)](https://ankitbko.github.io/blog/2022/06/websocket-latency/)
-
-[socket.io latency 계산식 (1-way)](https://socket.io/how-to/check-the-latency-of-the-connection)
-
-[cloudflare.com - what is latency](https://www.cloudflare.com/learning/performance/glossary/what-is-latency/)
-
-### 문제상황
+**문제상황**
 
 게임플레이에 지장을 줄 정도로 판정이 가혹했습니다. 지연시간을 생각하지 않아 stop 이벤트 이전에 발송된 run이 뒤늦게 도착해 게임오버가 되는 경우가 발생했습니다.
 
-### 해결방안
+**해결방안**
 
 지연시간이 존재하면 극복하면 되는 법. 플레이어 클라이언트가 주기적으로 서버에 ping 이벤트를 보내 서버가 응답한 acknowledgement를 받을때까지의 시간을 구합니다. 이 시간을 Round Trip Time, 줄여서 RTT라고 부릅니다. RTT는 client → server → client 2-way이기 때문에 이를 절반으로 나누어야 1-way 지연시간을 구할 수 있습니다.
 
 ![Pasted image 20231212164243](https://github.com/Team-def/recre-backend/assets/18757823/c5368ad8-c69b-40c5-9428-4e1906b62df3)
 
-### Show Me the Code
+**Show Me the Code**
 
-**client**:
+client:
 
 ```tsx
 const start = performance.now();
@@ -198,7 +193,7 @@ socket.emit("ping", {start}, (res: {start: number}) => {
 
 ```
 
-**server**:
+server:
 
 레이턴시 측정을 위해 ping 이벤트에 ack를 보내주는 루틴
 
@@ -227,3 +222,11 @@ private doesPlayerHaveToDie(game: RedGreenGame, latency: number): boolean {
 	return false;
 }
 ```
+
+### SQLite In Memory Database 도입
+
+- [#116](https://github.com/Team-def/recre-backend/pull/116)
+
+다수의 플레이어들이 동시에 하나의 세션에서 게임을 즐기기 위해 In Memory Database를 사용했습니다. 게임을 진행시키기 위해 필요한 데이터로 Host, Game, Player가 있습니다. 처음엔 socket.io 소켓 객체와 더불어 모든 데이터를 Map 타입으로 정의하였고, 그림 맞추기 게임을 해당 규격에 맞추어 구현하였습니다. 이 방식으로 게임을 구현하니 에러가 정말 많았는데, 호스트 없는 게임, 게임 없는 플레이어와 같이 데이터 무결성 관리가 되지 않았기 때문입니다. 따라서 관계형 데이터베이스 사용이 필요해졌고, 영속성이 필요없었기 때문에 In Memory DB를 지원하는 SQLite를 도입했습니다. 호스트를 지우면 연관된 테이블의 데이터도 연쇄적으로 지우는 CASCADE 기능 덕분에 버그 발생 가능성을 줄였고, 코드 길이도 감소했습니다.
+
+SQLite In Memory DB를 사용하여 게임의 상태를 관리하자 Map으로 관리할때는 없었던 문제가 생기기 시작했습니다. 바로 비동기 문제였습니다. 동시다발적으로 들어오는 웹 소켓 이벤트의 일부를 처리하지 못해 게임이 종료되지 못하는 버그가 있었는데, async-lock을 활용하여 이벤트 핸들러를 임계영역으로 만들어 요청들을 순차적으로 처리하도록 강제했습니다.
