@@ -489,24 +489,6 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit('set_catch_answer', { type: 'answer_success', answer: ans });
     }
 
-    // syncGameRoomInfo() {
-    //     for (let room of this.catchGameRoom.values()) {
-    //         const host_socket = this.uuidToclientEntity.get(room.host).clientSocket;
-    //         host_socket.emit('player_list_add', {
-    //             player_cnt: value.current_user_num,
-    //             nickname: null,
-    //         Logger.log('게임 종료: ' + uuId);
-    //         this.custumDisconnect(this.uuidToclientEntity.get(uuId).clientSocket);  //캐치 게임 종료시 플레이어 접속 종료
-    //     }
-
-    //     this.catchGameRoom.forEach((value, key) => {
-    //         const hostuuid = this.roomIdToHostId.get(key);
-    //         const host = this.uuidToclientEntity.get(hostuuid).clientSocket;
-
-    //         });
-    //     });
-    // }
-
     @UseGuards(SessionGuardWithoutDB)
     @SubscribeMessage('draw')
     handleDraw(client: any, canvasData: any): void {
@@ -530,9 +512,6 @@ export class CatchGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     onModuleInit() {
-        // setInterval(() => {
-        //     this.syncGameRoomInfo();
-        // }, 3000);
         setInterval(() => {
             this.checkInactiveClients();
         }, 4000);
