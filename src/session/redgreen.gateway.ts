@@ -614,14 +614,6 @@ export class RedGreenGateway implements OnGatewayConnection, OnGatewayDisconnect
             host_socket.emit('players_status', {
                 player_info: players,
             });
-
-            // for (const player_socket of player_sockets) {
-            //     player_socket.emit('sync_game_room_info', {
-            //         room_id: room.room_id,
-            //         host: host,
-            //         players: players,
-            //     });
-            // }
         }
     }
 
