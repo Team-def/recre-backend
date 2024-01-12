@@ -6,6 +6,10 @@
 
 [지금 바로 체험해보세요!](https://treepark.shop)
 
+## 발표 및 시연
+
+<https://youtu.be/rO-1yWgtRfg?feature=shared>
+
 ## Screenshots
 
 - Catch My Mind
