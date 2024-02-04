@@ -6,19 +6,17 @@
 
 [지금 바로 체험해보세요!](https://treepark.shop)
 
-## 발표 및 시연
-
-<https://youtu.be/rO-1yWgtRfg?feature=shared>
+[발표 및 시연영상](https://youtu.be/rO-1yWgtRfg?feature=shared)
 
 ## Screenshots
 
-- Catch My Mind
+- 그림 맞추기
 
-![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/087356a6-d506-4a86-94b3-c4fd178cbf31)
+![delta crop](https://github.com/Team-def/recre-backend/assets/18757823/cb27234c-0d3b-4e30-bdc2-36584ec03a0f)
 
 - Red Light, Green Light
 
-![나만무_중간발표_최승현](https://github.com/Team-def/recre-backend/assets/18757823/884b6614-6648-4cd7-920e-9b80771537ce)
+![redgreen](https://github.com/Team-def/recre-backend/assets/18757823/8c3b791b-e2d9-47c5-8821-faf6897979ab)
 
 ## Architectures
 
