@@ -4,7 +4,7 @@
 - \[HOW\] Team-def는 별도의 지식 없이도 웹 브라우저만으로 쉽게 레크리에이션을 진행할 수 있는 서비스를 고안하였으며,
 - \[WHAT\] 최대 100명의 관중들과 온/오프라인에서 실시간으로 소통할 수 있는 서비스 RecRe를 만들었습니다.
 
-[지금 바로 체험해보세요!](https://treepark.shop)
+[지금 바로 체험해보세요!](https://recre.store)
 
 [발표 및 시연영상](https://youtu.be/rO-1yWgtRfg?feature=shared)
 
