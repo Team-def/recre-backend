@@ -17,8 +17,11 @@ import { Host } from 'src/session-info/entities/host.entity';
 import { CatchGame } from 'src/session-info/entities/catch.game.entity';
 import { SocketExtension } from './socket.extension';
 import * as AsyncLock from 'async-lock';
+import * as dotenv from 'dotenv';
 
-@WebSocketGateway({
+dotenv.config();
+
+@WebSocketGateway(+process.env.SOCKET_PORT, {
     namespace: 'catch', /// TODO - namespace는 나중에 정의할 것
     transports: ['websocket'],
     pingInterval: 3000,

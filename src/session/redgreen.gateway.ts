@@ -14,8 +14,11 @@ import { RedGreenPlayer } from 'src/session-info/entities/redgreen.player.entity
 import { Host } from 'src/session-info/entities/host.entity';
 import { RedGreenGame } from 'src/session-info/entities/redgreen.game.entity';
 import * as AsyncLock from 'async-lock';
+import * as dotenv from 'dotenv';
 
-@WebSocketGateway({
+dotenv.config();
+
+@WebSocketGateway(+process.env.SOCKET_PORT, {
     namespace: 'redgreen',
     transports: ['websocket'],
     pingInterval: 3000,
