@@ -84,6 +84,7 @@ DOMAIN=
 # 본 서비스가 동작할때 Listen할 포트번호
 
 LISTEN_PORT=
+SOCKET_PORT=
 ```
 
 그리고 다음 명령어를 통해 각각 개발용과 프로덕션용 모드로 실행할 수 있습니다. NestJS 커맨드에 대한 자세한 설명은 [공식문서](https://docs.nestjs.com/first-steps)를 참고하세요.
